@@ -12,6 +12,7 @@ const TOOL = {
     properties: {
       merchant: { type: ["string", "null"], description: "Shop or restaurant name" },
       total: { type: ["number", "null"], description: "Final amount payable printed on the bill, after tax and discounts" },
+      discount: { type: ["number", "null"], description: "Bill-wide discount, savings or coupon amount printed on the bill, as a positive number. Null if none." },
       items: {
         type: "array",
         items: {
@@ -26,7 +27,7 @@ const TOOL = {
         },
       },
     },
-    required: ["merchant", "total", "items"],
+    required: ["merchant", "total", "discount", "items"],
   },
 };
 
@@ -62,7 +63,7 @@ Deno.serve(async (req) => {
             type: "text",
             text: `This is an Indian shop bill, receipt or payment screenshot. List each purchased line with its line total in rupees. ` +
               `Treat taxes (GST, CGST, SGST), service charge, delivery or packing fees as their own lines; never output negative amounts: ` +
-              `subtract an item discount from its line; leave out a bill-wide discount but still report the printed final total. ` +
+              `subtract an item discount from its line; leave a bill-wide discount out of the items and report it in "discount", with the printed final total in "total". ` +
               `Pick each category from: ${(categories ?? []).join(", ")}. Use "other" if none fit. ` +
               `Lower the confidence for faded, handwritten or cut-off lines. If this is not a bill, return an empty items list.`,
           },

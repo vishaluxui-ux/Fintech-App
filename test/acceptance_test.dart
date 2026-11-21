@@ -296,4 +296,97 @@ void main() {
       expect(repo.captureOf(kept.id).imagePath, isNotNull);
     });
   });
+
+  group('Total mismatch: user explains why', () {
+    // Items ₹500, bill says ₹400.
+    Future<Capture> bill({double total = 400, double? discount}) => repo.addBill(ParsedBill(
+        merchant: 'Shop', total: total, discount: discount, lines: const [
+          ParsedLine('Shirt', 300, 'shopping', 0.9),
+          ParsedLine('Socks', 200, 'shopping', 0.9),
+        ]));
+    double sum(Capture c) => repo.itemsOf(c.id).fold(0.0, (s, i) => s + i.amount);
+
+    test('spreadReduction is proportional and exact to the paisa', () {
+      expect(ledger.spreadReduction([300, 200], 100), [240, 160]);
+      final r = ledger.spreadReduction([33.33, 33.33, 33.34], 10);
+      expect((r.fold(0.0, (a, b) => a + b) * 100).round(), 9000);
+      expect(() => ledger.spreadReduction([100], 100), throwsArgumentError);
+    });
+
+    test('Discount: spread over the lines; the mismatch clears; reason stored', () async {
+      final c = await bill();
+      expect(repo.mismatchFor(c), isNotNull);
+      await repo.resolveDiscount(c.id, discount: 100, paidTotal: 400);
+      final c2 = repo.captureOf(c.id);
+      expect(repo.itemsOf(c.id).map((i) => i.amount), [240, 160]);
+      expect(repo.mismatchFor(c2), isNull);
+      expect(c2.adjustReason, MismatchReason.discount);
+      await repo.approveAll(c.id);
+      expect(repo.totalApproved, 400);
+    });
+
+    test('Discount printed on the bill is applied automatically, no prompt', () async {
+      final c = await bill(discount: 100);
+      expect(repo.mismatchFor(c), isNull);
+      expect(c.adjustNote, 'auto');
+      expect(sum(c), 400);
+    });
+
+    test('Printed discount that does not explain the gap is left for the user', () async {
+      final c = await bill(discount: 30);
+      expect(repo.mismatchFor(c), isNotNull);
+      expect(c.adjustReason, isNull);
+    });
+
+    test('Problem while printing: lines are counted and become the total', () async {
+      final c = await bill();
+      await repo.resolvePrintError(c.id);
+      final c2 = repo.captureOf(c.id);
+      expect(c2.billTotal, 500);
+      expect(repo.mismatchFor(c2), isNull);
+      expect(c2.adjustReason, MismatchReason.printError);
+    });
+
+    test('Line appears twice: the chosen copy is removed', () async {
+      final c = await repo.addBill(const ParsedBill(merchant: 'Cafe', total: 200, lines: [
+        ParsedLine('Coffee', 100, 'food', 0.9),
+        ParsedLine('Cake', 100, 'food', 0.9),
+        ParsedLine('Coffee', 100, 'food', 0.9),
+      ]));
+      final repeats = ledger.likelyRepeatedLines(repo.itemsOf(c.id));
+      expect(repeats, hasLength(1));
+      await repo.resolveDuplicateLine(c.id, itemId: repeats.single);
+      expect(repo.itemsOf(c.id).map((i) => i.name), ['Coffee', 'Cake']);
+      expect(repo.mismatchFor(repo.captureOf(c.id)), isNull);
+    });
+
+    test('Other, paid less: difference spread over lines; reason kept', () async {
+      final c = await bill();
+      await repo.resolveOther(c.id, reason: 'Loyalty points', paidTotal: 450);
+      final c2 = repo.captureOf(c.id);
+      expect(sum(c2), 450);
+      expect(c2.billTotal, 450);
+      expect(c2.adjustNote, 'Loyalty points');
+      expect(repo.mismatchFor(c2), isNull);
+    });
+
+    test('Other, paid more: one Adjustment line for the difference', () async {
+      final c = await bill();
+      await repo.resolveOther(c.id, reason: 'Tip', paidTotal: 520);
+      final adj = repo.itemsOf(c.id).firstWhere((i) => i.name.startsWith('Adjustment'));
+      expect(adj.amount, 20);
+      expect(adj.name, 'Adjustment: Tip');
+      expect(sum(c), 520);
+      expect(repo.mismatchFor(repo.captureOf(c.id)), isNull);
+    });
+
+    test('Reason survives a reload from the device database', () async {
+      final c = await bill();
+      await repo.resolveOther(c.id, reason: 'Tip', paidTotal: 520);
+      final again = Repository(db, settings);
+      await again.load();
+      expect(again.captureOf(c.id).adjustReason, MismatchReason.other);
+      expect(again.captureOf(c.id).adjustNote, 'Tip');
+    });
+  });
 }

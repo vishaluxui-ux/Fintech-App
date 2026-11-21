@@ -13,7 +13,9 @@ class LocalDb {
     final f = factory ?? databaseFactory;
     final dbPath = path ?? p.join(await f.getDatabasesPath(), 'spend.db');
     final db = await f.openDatabase(dbPath,
-        options: OpenDatabaseOptions(version: 1, onCreate: (db, _) async {
+        options: OpenDatabaseOptions(version: 2, onUpgrade: (db, from, _) async {
+          if (from < 2) await _v2(db);
+        }, onCreate: (db, _) async {
           await db.execute('''CREATE TABLE captures(id TEXT PRIMARY KEY, source TEXT NOT NULL,
             source_app TEXT, captured_at TEXT NOT NULL, bill_total REAL, image_path TEXT, withdrawal_id TEXT)''');
           await db.execute('''CREATE TABLE items(id TEXT PRIMARY KEY, capture_id TEXT NOT NULL, name TEXT NOT NULL,
@@ -22,8 +24,14 @@ class LocalDb {
           await db.execute('''CREATE TABLE withdrawals(id TEXT PRIMARY KEY, amount REAL NOT NULL, at TEXT NOT NULL,
             source_app TEXT)''');
           await db.execute('CREATE TABLE outbox(tbl TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY(tbl, id))');
+          await _v2(db);
         }));
     return LocalDb(db);
+  }
+
+  static Future<void> _v2(Database db) async {
+    await db.execute('ALTER TABLE captures ADD COLUMN adjust_reason TEXT');
+    await db.execute('ALTER TABLE captures ADD COLUMN adjust_note TEXT');
   }
 
   Future<void> _put(String table, Map<String, Object?> row) => db.transaction((t) async {

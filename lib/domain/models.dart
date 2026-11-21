@@ -13,6 +13,9 @@ enum CaptureSource { upiNotification, bill, manual, cash }
 
 enum DuplicateMode { flag, autoReject }
 
+/// Why a bill's lines did not match its printed total, as the user explained it.
+enum MismatchReason { discount, printError, duplicateLine, other }
+
 class Category {
   final String id;
   final String name;
@@ -44,6 +47,8 @@ class Capture {
   final double? billTotal; // printed total on a bill (CAP-03)
   final String? imagePath; // local bill photo, kept or dropped per settings
   final String? withdrawalId; // cash spend allocated from an ATM withdrawal
+  final MismatchReason? adjustReason; // set once a total mismatch is resolved
+  final String? adjustNote; // "Other" reason text, or "auto" when the parser applied a discount
   const Capture({
     required this.id,
     required this.source,
@@ -52,16 +57,27 @@ class Capture {
     this.billTotal,
     this.imagePath,
     this.withdrawalId,
+    this.adjustReason,
+    this.adjustNote,
   });
 
-  Capture copyWith({String? imagePath, bool clearImage = false}) => Capture(
+  Capture copyWith({
+    String? imagePath,
+    bool clearImage = false,
+    double? billTotal,
+    MismatchReason? adjustReason,
+    String? adjustNote,
+  }) =>
+      Capture(
         id: id,
         source: source,
         sourceApp: sourceApp,
         capturedAt: capturedAt,
-        billTotal: billTotal,
+        billTotal: billTotal ?? this.billTotal,
         imagePath: clearImage ? null : (imagePath ?? this.imagePath),
         withdrawalId: withdrawalId,
+        adjustReason: adjustReason ?? this.adjustReason,
+        adjustNote: adjustNote ?? this.adjustNote,
       );
 
   Map<String, Object?> toMap() => {
@@ -72,6 +88,8 @@ class Capture {
         'bill_total': billTotal,
         'image_path': imagePath,
         'withdrawal_id': withdrawalId,
+        'adjust_reason': adjustReason?.name,
+        'adjust_note': adjustNote,
       };
 
   factory Capture.fromMap(Map<String, Object?> m) => Capture(
@@ -82,6 +100,9 @@ class Capture {
         billTotal: (m['bill_total'] as num?)?.toDouble(),
         imagePath: m['image_path'] as String?,
         withdrawalId: m['withdrawal_id'] as String?,
+        adjustReason:
+            m['adjust_reason'] == null ? null : MismatchReason.values.byName(m['adjust_reason'] as String),
+        adjustNote: m['adjust_note'] as String?,
       );
 }
 
@@ -196,6 +217,7 @@ class ParsedLine {
 class ParsedBill {
   final String? merchant;
   final double? total;
+  final double? discount; // bill-wide discount printed on the bill
   final List<ParsedLine> lines;
-  const ParsedBill({this.merchant, this.total, required this.lines});
+  const ParsedBill({this.merchant, this.total, this.discount, required this.lines});
 }

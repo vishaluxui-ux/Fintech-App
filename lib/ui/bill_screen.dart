@@ -7,6 +7,7 @@ import '../data/repository.dart';
 import '../domain/models.dart';
 import 'inbox_screen.dart';
 import 'item_editor.dart';
+import 'mismatch_sheet.dart';
 import 'theme.dart';
 
 /// Review one bill: photo, every line, total check, add a missed line, approve all.
@@ -45,8 +46,21 @@ class BillScreen extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 12),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: cs.errorContainer, borderRadius: BorderRadius.circular(8)),
-            child: Text('$mismatch. Fix a line or add a missed one before approving.',
-                style: TextStyle(color: cs.onErrorContainer)),
+            child: Row(children: [
+              Expanded(child: Text(mismatch, style: TextStyle(color: cs.onErrorContainer))),
+              TextButton(onPressed: () => showMismatchSheet(context, captureId), child: const Text('Fix')),
+            ]),
+          ),
+        if (cap.adjustReason != null)
+          ListTile(
+            dense: true,
+            leading: const Icon(Icons.check_circle_outline),
+            title: Text(switch (cap.adjustReason!) {
+              MismatchReason.discount => cap.adjustNote == 'auto' ? 'Discount applied from the bill' : 'Discount applied',
+              MismatchReason.printError => 'Printed total ignored: items counted',
+              MismatchReason.duplicateLine => 'Repeated line removed',
+              MismatchReason.other => 'Adjusted: ${cap.adjustNote ?? ''}',
+            }),
           ),
         const Divider(),
         for (final i in items)

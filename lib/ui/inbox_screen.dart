@@ -9,6 +9,7 @@ import '../domain/models.dart';
 import '../services/bill_parser.dart';
 import 'bill_screen.dart';
 import 'item_editor.dart';
+import 'mismatch_sheet.dart';
 import 'theme.dart';
 
 /// APR-01: pending items grouped by bill or payment.
@@ -104,14 +105,18 @@ Future<void> confirmApproveAll(BuildContext context, Capture capture, int count)
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('Totals do not match'),
-        content: Text('$mismatch. A line may be missing or misread.'),
+        content: Text('$mismatch. Tell us why and we\'ll fix the amounts, or approve as it is.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Review')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Approve anyway')),
+          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Approve as is')),
+          FilledButton(onPressed: () => Navigator.pop(c, false), child: const Text('Fix the bill')),
         ],
       ),
     );
-    if (ok != true) return;
+    if (ok == null || !context.mounted) return;
+    if (!ok) {
+      final fixed = await showMismatchSheet(context, capture.id);
+      if (!fixed || repo.mismatchFor(repo.captureOf(capture.id)) != null) return;
+    }
   }
   await repo.approveAll(capture.id);
 }

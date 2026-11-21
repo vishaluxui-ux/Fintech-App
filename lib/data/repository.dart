@@ -116,7 +116,72 @@ class Repository extends ChangeNotifier {
         )
     ];
     await _saveCapture(cap, lines);
-    return cap;
+    // The bill prints a discount and lines minus discount match the total:
+    // apply it without asking (no prompt for the common case).
+    final d = bill.discount;
+    if (d != null && d > 0 && bill.total != null) {
+      final sum = lines.fold(0.0, (s, i) => s + i.amount);
+      if ((sum - d - bill.total!).abs() <= 1.0 && d < sum) {
+        await resolveDiscount(cap.id, discount: d, paidTotal: bill.total!, note: 'auto');
+      }
+    }
+    return captureOf(cap.id);
+  }
+
+  // ---- total mismatch resolution ----
+
+  List<Item> _openLines(String captureId) => items
+      .where((i) =>
+          i.captureId == captureId && i.status != ItemStatus.deleted && i.status != ItemStatus.rejected)
+      .toList();
+
+  /// Discount: spread it over the lines by share; the bill total becomes what was paid.
+  Future<void> resolveDiscount(String captureId, {required double discount, required double paidTotal, String? note}) async {
+    final lines = _openLines(captureId);
+    final next = ledger.spreadReduction([for (final i in lines) i.amount], discount);
+    for (var k = 0; k < lines.length; k++) {
+      await _update(lines[k].id, (i) => i.copyWith(amount: next[k]), notify: false);
+    }
+    await _setAdjust(captureId, MismatchReason.discount, paidTotal, note);
+  }
+
+  /// Printing problem: the lines are right, the printed total is wrong, so the
+  /// sum of the lines becomes the total. No input needed.
+  Future<void> resolvePrintError(String captureId) {
+    final sum = ((_openLines(captureId).fold(0.0, (s, i) => s + i.amount)) * 100).round() / 100;
+    return _setAdjust(captureId, MismatchReason.printError, sum, null);
+  }
+
+  /// Line appears twice: remove the extra copy.
+  Future<void> resolveDuplicateLine(String captureId, {required String itemId}) async {
+    await _update(itemId, (i) => i.copyWith(status: ItemStatus.deleted), notify: false);
+    final cap = captureOf(captureId);
+    await _setAdjust(captureId, MismatchReason.duplicateLine, cap.billTotal, null);
+  }
+
+  /// Other: the user's reason and what they paid. Paid less -> spread the
+  /// difference over the lines; paid more -> add one "Adjustment" line.
+  Future<void> resolveOther(String captureId, {required String reason, required double paidTotal}) async {
+    final sum = _openLines(captureId).fold(0.0, (s, i) => s + i.amount);
+    final gap = ((sum - paidTotal) * 100).round() / 100;
+    if (gap > 0) {
+      final lines = _openLines(captureId);
+      final next = ledger.spreadReduction([for (final i in lines) i.amount], gap);
+      for (var k = 0; k < lines.length; k++) {
+        await _update(lines[k].id, (i) => i.copyWith(amount: next[k]), notify: false);
+      }
+    } else if (gap < 0) {
+      await addManual(name: 'Adjustment: $reason', amount: -gap, categoryId: 'other', captureId: captureId);
+    }
+    await _setAdjust(captureId, MismatchReason.other, paidTotal, reason);
+  }
+
+  Future<void> _setAdjust(String captureId, MismatchReason r, double? paidTotal, String? note) async {
+    final idx = captures.indexWhere((c) => c.id == captureId);
+    final next = captures[idx].copyWith(billTotal: paidTotal, adjustReason: r, adjustNote: note);
+    await _db.putCapture(next);
+    captures = [...captures]..[idx] = next;
+    _changed();
   }
 
   /// CAP-04: manual entry. With [withdrawalId] it is a cash spend split from
@@ -183,14 +248,14 @@ class Repository extends ChangeNotifier {
   /// APR-05: leaves every total.
   Future<void> delete(String itemId) => _update(itemId, (i) => i.copyWith(status: ItemStatus.deleted));
 
-  Future<void> _update(String id, Item Function(Item) f) async {
+  Future<void> _update(String id, Item Function(Item) f, {bool notify = true}) async {
     final idx = items.indexWhere((i) => i.id == id);
     if (idx < 0) return;
     final next = f(items[idx]);
     await _db.putItem(next);
     items = [...items]..[idx] = next;
     await _maybeDropPhoto(next.captureId);
-    _changed();
+    if (notify) _changed();
   }
 
   /// Bill photo retention setting: once nothing on the bill is pending, drop the photo.

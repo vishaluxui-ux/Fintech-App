@@ -28,6 +28,7 @@ class BillParser {
 ParsedBill parseBillJson(Map<String, dynamic> j) => ParsedBill(
       merchant: j['merchant'] as String?,
       total: (j['total'] as num?)?.toDouble(),
+      discount: (j['discount'] as num?)?.toDouble(),
       lines: [
         for (final l in (j['items'] as List? ?? const []))
           ParsedLine(

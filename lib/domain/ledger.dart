@@ -44,6 +44,48 @@ String? totalMismatch(Capture capture, Iterable<Item> items) {
   return 'Items add up to ₹${sum.toStringAsFixed(2)} but the bill total is ₹${total.toStringAsFixed(2)}';
 }
 
+/// Spread [reduction] across [amounts] in proportion to each, to the paisa,
+/// so the result sums to exactly sum(amounts) - reduction. Any rounding
+/// remainder goes to the largest line. Keeps category totals honest.
+List<double> spreadReduction(List<double> amounts, double reduction) {
+  final sum = amounts.fold(0.0, (s, a) => s + a);
+  if (amounts.isEmpty || sum <= 0 || reduction <= 0) return amounts;
+  if (reduction >= sum) throw ArgumentError('Discount is larger than the items total');
+  final factor = (sum - reduction) / sum;
+  final out = [for (final a in amounts) (a * factor * 100).round() / 100];
+  final target = ((sum - reduction) * 100).round();
+  final diff = target - out.fold(0, (s, a) => s + (a * 100).round());
+  if (diff != 0) {
+    var big = 0;
+    for (var i = 1; i < out.length; i++) {
+      if (amounts[i] > amounts[big]) big = i;
+    }
+    out[big] = ((out[big] * 100).round() + diff) / 100;
+  }
+  return out;
+}
+
+/// Figures shown at the top of the "why don't these match" sheet.
+({double items, double bill, double gap}) mismatchFigures(Capture capture, Iterable<Item> items) {
+  final sum = items
+      .where((i) => i.captureId == capture.id && i.status != ItemStatus.deleted && i.status != ItemStatus.rejected)
+      .fold(0.0, (s, i) => s + i.amount);
+  final bill = capture.billTotal ?? sum;
+  return (items: sum, bill: bill, gap: sum - bill);
+}
+
+/// Lines that look like a repeat (same name and amount) are offered first for "Line appears twice".
+Set<String> likelyRepeatedLines(Iterable<Item> lines) {
+  final seen = <String, String>{};
+  final out = <String>{};
+  for (final i in lines) {
+    final k = '${i.name.trim().toLowerCase()}|${i.amount.toStringAsFixed(2)}';
+    if (seen.containsKey(k)) out.add(i.id);
+    seen[k] = i.id;
+  }
+  return out;
+}
+
 /// APR-04: flag reasons for a parsed or captured item.
 const lowConfidence = 0.7;
 String? flagFor({double? confidence, required String? payee, required Set<String> knownPayees}) {
