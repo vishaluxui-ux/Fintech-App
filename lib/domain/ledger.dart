@@ -217,3 +217,41 @@ List<Item> unflaggedPending(Iterable<Item> items) =>
   );
 }
 
+
+// ---- Bills counted twice ----
+
+String _norm(String? s) => (s ?? '').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+/// A bill already scanned: same total (within ₹1) and the same shop or the
+/// same line amounts, scanned within 7 days. Rejected/deleted bills don't count.
+Capture? findDuplicateBill(ParsedBill bill, DateTime at, Iterable<Capture> captures, Iterable<Item> items) {
+  final lineSum = bill.lines.fold<double>(0.0, (s, l) => s + l.amount);
+  final total = bill.total ?? lineSum;
+  final amounts = (bill.lines.map((l) => (l.amount * 100).round()).toList()..sort()).join(',');
+  for (final c in captures) {
+    if (c.source != CaptureSource.bill || c.capturedAt.difference(at).abs() > const Duration(days: 7)) continue;
+    final lines = items
+        .where((i) => i.captureId == c.id && i.status != ItemStatus.deleted && i.status != ItemStatus.rejected)
+        .toList();
+    if (lines.isEmpty) continue;
+    final cTotal = c.billTotal ?? lines.fold<double>(0.0, (s, i) => s + i.amount);
+    if ((cTotal - total).abs() > 1.0) continue;
+    final sameShop = _norm(c.sourceApp).isNotEmpty && _norm(c.sourceApp) == _norm(bill.merchant);
+    final cAmounts = (lines.map((i) => (i.amount * 100).round()).toList()..sort()).join(',');
+    if (sameShop || cAmounts == amounts) return c;
+  }
+  return null;
+}
+
+/// A UPI payment that is probably this bill: same amount (within ₹1), within
+/// 12 hours, still counting or pending. Scanning the bill would count it twice.
+Item? findPaymentForBill(ParsedBill bill, DateTime at, Iterable<Capture> captures, Iterable<Item> items) {
+  final total = bill.total ?? bill.lines.fold<double>(0.0, (s, l) => s + l.amount);
+  final upi = {for (final c in captures) if (c.source == CaptureSource.upiNotification) c.id};
+  for (final i in items) {
+    if (!upi.contains(i.captureId)) continue;
+    if (i.status != ItemStatus.pending && i.status != ItemStatus.approved) continue;
+    if ((i.amount - total).abs() <= 1.0 && i.spentAt.difference(at).abs() <= const Duration(hours: 12)) return i;
+  }
+  return null;
+}

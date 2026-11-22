@@ -537,4 +537,48 @@ void main() {
       expect(alertFromJson({'kind': 'payment', 'amount': null, 'payee': 'X'}, 'Paytm', t0), isA<Ignored>());
     });
   });
+
+  group('Bills counted twice', () {
+    test('Same bill scanned again is found (same shop and total)', () async {
+      await repo.addBill(testBill(), at: t0);
+      expect(ledger.findDuplicateBill(testBill(), t0.add(const Duration(hours: 1)), repo.captures, repo.items), isNotNull);
+    });
+
+    test('Same lines with the shop name read differently is still found', () async {
+      await repo.addBill(testBill(), at: t0);
+      const again = ParsedBill(merchant: 'SHARMA STORE', total: 250, lines: [
+        ParsedLine('Milk', 60, 'groceries', 0.9),
+        ParsedLine('Bread loaf', 40, 'groceries', 0.9),
+        ParsedLine('Facewash', 150, 'cosmetics', 0.9),
+      ]);
+      expect(ledger.findDuplicateBill(again, t0, repo.captures, repo.items), isNotNull);
+    });
+
+    test('Different total, a week later, or a rejected bill is not a duplicate', () async {
+      final c = await repo.addBill(testBill(), at: t0);
+      expect(ledger.findDuplicateBill(const ParsedBill(merchant: 'Sharma Stores', total: 400, lines: [
+        ParsedLine('Rice', 400, 'groceries', 0.9)]), t0, repo.captures, repo.items), isNull);
+      expect(ledger.findDuplicateBill(testBill(), t0.add(const Duration(days: 8)), repo.captures, repo.items), isNull);
+      for (final i in repo.itemsOf(c.id)) {
+        await repo.reject(i.id);
+      }
+      expect(ledger.findDuplicateBill(testBill(), t0, repo.captures, repo.items), isNull);
+    });
+
+    test('Bill matching a UPI payment replaces it so the spend counts once', () async {
+      await pay(250, 'Sharma Stores', t0);
+      await repo.approve(repo.items.single.id);
+      final paid = ledger.findPaymentForBill(testBill(), t0.add(const Duration(minutes: 5)), repo.captures, repo.items);
+      expect(paid, isNotNull);
+      final c = await repo.addBill(testBill(), at: t0, replacesPaymentId: paid!.id);
+      await repo.approveAll(c.id);
+      expect(repo.totalApproved, 250);
+      expect(repo.items.firstWhere((i) => i.id == paid.id).status, ItemStatus.rejected);
+    });
+
+    test('A payment far from the bill time is not matched', () async {
+      await pay(250, 'Sharma Stores', t0);
+      expect(ledger.findPaymentForBill(testBill(), t0.add(const Duration(days: 1)), repo.captures, repo.items), isNull);
+    });
+  });
 }

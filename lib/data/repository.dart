@@ -104,7 +104,13 @@ class Repository extends ChangeNotifier {
   }
 
   /// CAP-02 / CAP-03: one bill -> one capture with an item per line.
-  Future<Capture> addBill(ParsedBill bill, {String? imagePath, DateTime? at}) async {
+  /// [replacesPaymentId]: a UPI payment this bill stands for. It is rejected so
+  /// the spend counts once, with the bill's item detail.
+  Future<Capture> addBill(ParsedBill bill, {String? imagePath, DateTime? at, String? replacesPaymentId}) async {
+    if (replacesPaymentId != null) {
+      await _update(replacesPaymentId,
+          (i) => i.copyWith(status: ItemStatus.rejected, flagReason: 'Replaced by a scanned bill'), notify: false);
+    }
     final now = at ?? DateTime.now();
     final cap = Capture(
         id: newId(),

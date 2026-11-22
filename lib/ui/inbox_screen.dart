@@ -220,7 +220,62 @@ Future<void> scanBillFile(BuildContext context, String path) async {
       messenger.showSnackBar(const SnackBar(content: Text('No items found. Try a clearer photo, or add them manually.')));
       return;
     }
-    final cap = await repo.addBill(bill, imagePath: path);
+    messenger.hideCurrentSnackBar();
+    final now = DateTime.now();
+    final settings = repo.settings;
+
+    // Same bill scanned before?
+    final dup = ledger.findDuplicateBill(bill, now, repo.captures, repo.items);
+    if (dup != null) {
+      final what = '${dup.sourceApp ?? 'a bill'} from ${when(dup.capturedAt)}';
+      if (settings.duplicateMode == DuplicateMode.autoReject) {
+        var addAnyway = false;
+        await messenger
+            .showSnackBar(SnackBar(
+              content: Text('Skipped: you already scanned this bill ($what).'),
+              action: SnackBarAction(label: 'Add anyway', onPressed: () => addAnyway = true),
+              duration: const Duration(seconds: 6),
+            ))
+            .closed;
+        if (!addAnyway) return;
+      } else {
+        if (!context.mounted) return;
+        final add = await showDialog<bool>(
+          context: context,
+          builder: (c) => AlertDialog(
+            title: const Text('Already scanned?'),
+            content: Text('This looks like $what. Adding it again will count it twice.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Add anyway')),
+              FilledButton(onPressed: () => Navigator.pop(c, false), child: const Text("Don't add")),
+            ],
+          ),
+        );
+        if (add != true) return;
+      }
+    }
+
+    // Already logged as a UPI payment?
+    String? replaces;
+    final paid = ledger.findPaymentForBill(bill, now, repo.captures, repo.items);
+    if (paid != null && context.mounted) {
+      final useBill = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Paid by UPI?'),
+          content: Text('This bill matches your ${inr(paid.amount)} payment to ${paid.payee ?? paid.name} '
+              'at ${when(paid.spentAt)}. Use the bill\'s item list instead, so it counts once?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Keep both')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Use bill items')),
+          ],
+        ),
+      );
+      if (useBill == null) return;
+      if (useBill) replaces = paid.id;
+    }
+
+    final cap = await repo.addBill(bill, imagePath: path, at: now, replacesPaymentId: replaces);
     messenger.hideCurrentSnackBar();
     nav.push(MaterialPageRoute(builder: (_) => BillScreen(captureId: cap.id)));
   } catch (e) {
