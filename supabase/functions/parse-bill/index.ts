@@ -61,11 +61,16 @@ Deno.serve(async (req) => {
           { type: "image", source: { type: "base64", media_type: media_type ?? "image/jpeg", data: image } },
           {
             type: "text",
-            text: `This is an Indian shop bill, receipt or payment screenshot. List each purchased line with its line total in rupees. ` +
+            text: `This is an Indian shop bill, receipt, or a payment screenshot. For a bill, list each purchased line with its line total in rupees. ` +
               `Treat taxes (GST, CGST, SGST), service charge, delivery or packing fees as their own lines; never output negative amounts: ` +
               `subtract an item discount from its line; leave a bill-wide discount out of the items and report it in "discount", with the printed final total in "total". ` +
               `Pick each category from: ${(categories ?? []).join(", ")}. Use "other" if none fit. ` +
-              `Lower the confidence for faded, handwritten or cut-off lines. If this is not a bill, return an empty items list.`,
+              `Lower the confidence for faded, handwritten or cut-off lines. ` +
+              `If the image is a payment confirmation screenshot (Google Pay, PhonePe, Paytm, CRED, BHIM, a bank app, ` +
+              `or similar showing a completed payment the user made), return exactly one item: name = who was paid, ` +
+              `amount = the amount paid, a fitting category; set merchant to who was paid and total to the amount. ` +
+              `Money received, failed or pending payments are not spends: return an empty items list for them. ` +
+              `If the image is neither a bill nor a payment screenshot, return an empty items list.`,
           },
         ],
       }],
