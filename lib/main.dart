@@ -9,6 +9,8 @@ import 'data/repository.dart';
 import 'data/settings.dart';
 import 'services/auth_service.dart';
 import 'services/bill_parser.dart';
+import 'services/alert_ingestor.dart';
+import 'services/alert_reader.dart';
 import 'services/notification_bridge.dart';
 import 'services/reminder_service.dart';
 import 'services/sync_service.dart';
@@ -28,7 +30,7 @@ Future<void> main() async {
   await repo.load();
   sync.start();
 
-  final bridge = NotificationBridge(repo)..start();
+  final bridge = NotificationBridge(AlertIngestor(repo, AlertReader(client).read))..start();
   final reminders = ReminderService(repo);
   await reminders.init();
 

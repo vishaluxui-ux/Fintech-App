@@ -51,6 +51,10 @@ final _payeePatterns = <RegExp>[
   RegExp(r'\bat\s+(.+?)(?:\s+(?:on|via|using|ref)\b|[.,]|$)', caseSensitive: false),
 ];
 
+/// True when the alert is clearly not a spend (money in, a request, a failure).
+/// These are dropped without asking the AI.
+bool clearlyNotSpend(String title, String text) => _received.hasMatch('$title $text');
+
 double? parseAmount(String text) {
   final m = _amount.firstMatch(text);
   if (m == null) return null;

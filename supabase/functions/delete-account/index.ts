@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
   const { data: { user } } = await admin.auth.getUser(auth.replace("Bearer ", ""));
   if (!user) return new Response("Unauthorized", { status: 401 });
 
-  for (const t of ["items", "captures", "withdrawals", "parse_log"]) {
+  for (const t of ["items", "captures", "withdrawals", "parse_log", "alert_log"]) {
     const { error } = await admin.from(t).delete().eq("user_id", user.id);
     if (error) return new Response(error.message, { status: 500 });
   }

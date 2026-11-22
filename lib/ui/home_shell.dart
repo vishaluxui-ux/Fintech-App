@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../data/repository.dart';
+import '../services/notification_bridge.dart';
 import 'cash_screen.dart';
 import 'dashboard_screen.dart';
 import 'inbox_screen.dart';
@@ -13,8 +14,37 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkShared());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState s) {
+    if (s == AppLifecycleState.resumed) {
+      _checkShared();
+      context.read<NotificationBridge>().drain();
+    }
+  }
+
+  /// A screenshot shared from a UPI app: read it like a bill.
+  Future<void> _checkShared() async {
+    final path = await context.read<NotificationBridge>().takeSharedImage().catchError((_) => null);
+    if (path == null || !mounted) return;
+    setState(() => _tab = 1);
+    await scanBillFile(context, path);
+  }
 
   @override
   Widget build(BuildContext context) {

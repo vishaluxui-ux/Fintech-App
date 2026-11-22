@@ -112,6 +112,20 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
           trailing: _access == true ? const Icon(Icons.check_circle, color: Colors.green) : const Icon(Icons.chevron_right),
           onTap: _access == true ? () => context.read<NotificationBridge>().openSettings() : _enableNotifications,
         ),
+        const _Header('Less checking'),
+        SwitchListTile(
+          value: s.autoApproveKnown,
+          onChanged: (v) => s.autoApproveKnown = v,
+          title: const Text('Auto-approve known merchants'),
+          subtitle: const Text('After you approve a merchant twice with the same category, '
+              'new payments to it are approved for you. They show "Auto" so you can change them.'),
+        ),
+        SwitchListTile(
+          value: s.weeklySummary,
+          onChanged: (v) => s.weeklySummary = v,
+          title: const Text('Weekly summary'),
+          subtitle: const Text('Sunday evening: what you spent and how it compares with last week'),
+        ),
         const _Header('Duplicate payments'),
         RadioGroup<DuplicateMode>(
           groupValue: s.duplicateMode,
@@ -151,7 +165,8 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
         ),
         const Padding(
           padding: EdgeInsets.all(16),
-          child: Text('Bill photos are sent to Anthropic\'s Claude to read the items. They are not used to train models.',
+          child: Text('Bill photos, and payment alerts the app can\'t read by itself, are sent to Anthropic\'s Claude '
+              'to read them. They are not used to train models.',
               style: TextStyle(fontSize: 12)),
         ),
       ]),

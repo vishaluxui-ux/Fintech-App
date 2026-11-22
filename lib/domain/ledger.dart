@@ -163,3 +163,57 @@ bool offerMonthEndReview(DateTime now, Iterable<Withdrawal> ws, Iterable<Capture
 }
 
 String _d(DateTime t) => '${t.day}/${t.month}';
+
+
+// ---- Retention and less-chore rules ----
+
+/// Known merchant: the last two approved payments to this payee were
+/// approved by hand (or kept) with the same category. Returns that category.
+String? knownMerchantCategory(String payee, Iterable<Item> items) {
+  if (payee == 'Unknown payee') return null;
+  final prior = items
+      .where((i) => i.status == ItemStatus.approved && i.payee?.toLowerCase() == payee.toLowerCase())
+      .toList()
+    ..sort((a, b) => b.spentAt.compareTo(a.spentAt));
+  if (prior.length < 2) return null;
+  return prior[0].categoryId == prior[1].categoryId ? prior[0].categoryId : null;
+}
+
+/// Items safe to approve in one tap: pending and not flagged.
+List<Item> unflaggedPending(Iterable<Item> items) =>
+    items.where((i) => i.status == ItemStatus.pending && i.flagReason == null).toList();
+
+/// One daily nudge (CSH-02 stays one reminder a day): items waiting and/or
+/// cash not yet split. Null when there is nothing to do.
+({String title, String body})? dailyNudge(Iterable<Withdrawal> ws, Iterable<Capture> captures, Iterable<Item> items) {
+  final pending = inboxCount(items);
+  final cash = dailyCashReminder(ws, captures, items);
+  if (pending == 0 && cash == null) return null;
+  if (pending == 0) return cash;
+  final inbox = '$pending item${pending == 1 ? '' : 's'} to check';
+  if (cash == null) return (title: inbox, body: 'Takes a few seconds. Pending items are not in your totals yet.');
+  return (title: '$inbox · ${cash.title}', body: cash.body);
+}
+
+/// Weekly summary for the 7 days before [now], compared with the 7 before that.
+({String title, String body})? weeklySummary(DateTime now, Iterable<Item> items) {
+  final start = now.subtract(const Duration(days: 7));
+  final prevStart = now.subtract(const Duration(days: 14));
+  final week = items.where((i) => i.counts && i.spentAt.isAfter(start) && !i.spentAt.isAfter(now));
+  final prev = items.where((i) => i.counts && i.spentAt.isAfter(prevStart) && !i.spentAt.isAfter(start));
+  final total = totalApproved(week);
+  if (total == 0) return null;
+  final byCat = spendByCategory(week).entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  final top = byCat.first;
+  final prevTotal = totalApproved(prev);
+  String change = '';
+  if (prevTotal > 0) {
+    final pct = ((total - prevTotal) / prevTotal * 100).round();
+    change = pct == 0 ? ' Same as last week.' : ' ${pct.abs()}% ${pct > 0 ? 'more' : 'less'} than last week.';
+  }
+  return (
+    title: 'This week: ₹${total.toStringAsFixed(0)}',
+    body: 'Most on ${categoryById(top.key).name} (₹${top.value.toStringAsFixed(0)}).$change',
+  );
+}
+

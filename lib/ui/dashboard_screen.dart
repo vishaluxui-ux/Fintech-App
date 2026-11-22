@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../data/repository.dart';
 import '../domain/models.dart';
+import 'item_editor.dart';
 import 'theme.dart';
 
 /// DSH-01: total approved spend, spend by category, inbox count.
@@ -56,6 +57,33 @@ class DashboardScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4)),
             ]),
           ),
+        if (repo.approved.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          Text('Recent', style: t.titleMedium),
+          for (final i in repo.approved.take(10))
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: Text(i.name),
+              subtitle: Text('${categoryById(i.categoryId).name} · ${when(i.spentAt)}'),
+              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (i.autoApproved)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Tooltip(
+                      message: 'Approved automatically: you approved this merchant before',
+                      child: Chip(
+                          label: const Text('Auto'),
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          side: BorderSide(color: cs.outlineVariant)),
+                    ),
+                  ),
+                Text(inr(i.amount), style: t.titleSmall),
+              ]),
+              onTap: () => showItemEditor(context, item: i),
+            ),
+        ],
       ]),
     );
   }

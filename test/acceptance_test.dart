@@ -5,6 +5,8 @@ import 'package:expense_tracker/data/settings.dart';
 import 'package:expense_tracker/domain/ledger.dart' as ledger;
 import 'package:expense_tracker/domain/models.dart';
 import 'package:expense_tracker/domain/upi_parser.dart';
+import 'package:expense_tracker/services/alert_ingestor.dart';
+import 'package:expense_tracker/services/alert_reader.dart';
 import 'package:expense_tracker/services/bill_parser.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -396,6 +398,143 @@ void main() {
       await again.load();
       expect(again.captureOf(c.id).adjustReason, MismatchReason.other);
       expect(again.captureOf(c.id).adjustNote, 'Tip');
+    });
+  });
+
+  group('Risk reducers', () {
+    test('Known merchant: third payment auto-approved with the same category, marked Auto', () async {
+      await pay(100, 'Chai Point', t0);
+      await repo.edit(repo.items.last.id, categoryId: 'food');
+      await repo.approve(repo.items.last.id);
+      await pay(120, 'Chai Point', t0.add(const Duration(days: 1)));
+      expect(repo.items.last.status, ItemStatus.pending, reason: 'only one approval so far');
+      await repo.edit(repo.items.last.id, categoryId: 'food');
+      await repo.approve(repo.items.last.id);
+      await pay(90, 'Chai Point', t0.add(const Duration(days: 2)));
+      final third = repo.items.last;
+      expect(third.status, ItemStatus.approved);
+      expect(third.categoryId, 'food');
+      expect(third.autoApproved, isTrue);
+      expect(repo.totalApproved, 310);
+    });
+
+    test('Known merchant: off in settings, or categories differ -> stays pending', () async {
+      await fresh(prefs: {'auto_approve_known': false});
+      for (var d = 0; d < 3; d++) {
+        await pay(50, 'Metro', t0.add(Duration(days: d)));
+        if (d < 2) await repo.approve(repo.items.last.id);
+      }
+      expect(repo.items.last.status, ItemStatus.pending);
+
+      await fresh();
+      await pay(50, 'Mall', t0);
+      await repo.edit(repo.items.last.id, categoryId: 'food');
+      await repo.approve(repo.items.last.id);
+      await pay(60, 'Mall', t0.add(const Duration(days: 1)));
+      await repo.edit(repo.items.last.id, categoryId: 'shopping');
+      await repo.approve(repo.items.last.id);
+      await pay(70, 'Mall', t0.add(const Duration(days: 2)));
+      expect(repo.items.last.status, ItemStatus.pending);
+    });
+
+    test('Auto-approved marker survives a reload', () async {
+      for (var d = 0; d < 3; d++) {
+        await pay(50, 'Metro', t0.add(Duration(days: d)));
+        if (d < 2) await repo.approve(repo.items.last.id);
+      }
+      final again = Repository(db, settings);
+      await again.load();
+      expect(again.items.where((i) => i.autoApproved), hasLength(1));
+    });
+
+    test('Approve all unflagged leaves flagged items for review', () async {
+      await repo.addManual(name: 'Tea', amount: 20, categoryId: 'food');
+      await repo.addManual(name: 'Bus', amount: 30, categoryId: 'transport');
+      await pay(99, 'Unknown Shop', t0); // flagged: new merchant
+      final n = await repo.approveAllUnflagged();
+      expect(n, 2);
+      expect(repo.totalApproved, 50);
+      expect(repo.inboxCount, 1);
+    });
+
+    test('Daily nudge: none when nothing waits; one combined message otherwise', () async {
+      expect(ledger.dailyNudge(repo.withdrawals, repo.captures, repo.items), isNull);
+      await repo.addManual(name: 'Tea', amount: 20, categoryId: 'food');
+      expect(ledger.dailyNudge(repo.withdrawals, repo.captures, repo.items)!.title, '1 item to check');
+      await repo.addWithdrawal(1000, t0);
+      expect(ledger.dailyNudge(repo.withdrawals, repo.captures, repo.items)!.title,
+          '1 item to check · ₹1000 cash not yet split');
+    });
+
+    test('Weekly summary: total, top category and change from last week', () async {
+      final now = DateTime(2026, 11, 29, 19);
+      Future<void> spend(double a, String cat, int daysAgo) async {
+        final i = await repo.addManual(
+            name: cat, amount: a, categoryId: cat, at: now.subtract(Duration(days: daysAgo)));
+        await repo.approve(i.id);
+      }
+      await spend(300, 'food', 2);
+      await spend(200, 'transport', 3);
+      await spend(250, 'food', 9); // last week
+      final w = ledger.weeklySummary(now, repo.items)!;
+      expect(w.title, 'This week: ₹500');
+      expect(w.body, 'Most on Food (₹300). 100% more than last week.');
+      expect(ledger.weeklySummary(DateTime(2027, 3, 1), repo.items), isNull);
+    });
+  });
+
+  group('AI reads alerts the rules miss', () {
+    late List<String> calls;
+    AlertIngestor ingestor(Future<NotificationResult> Function() ai) {
+      calls = [];
+      return AlertIngestor(repo, (pkg, title, body, at) {
+        calls.add(body);
+        return ai();
+      });
+    }
+
+    test('Rules handle a normal alert: no AI call', () async {
+      final ing = ingestor(() async => const Ignored());
+      await ing.ingest(gpay, 'Payment successful', 'Paid ₹50 to Metro', t0);
+      expect(calls, isEmpty);
+      expect(repo.items.single.payee, 'Metro');
+    });
+
+    test('Unusual wording goes to the AI, which creates the item', () async {
+      final ing = ingestor(() async => UpiPayment(240, 'Big Bazaar', t0, 'PhonePe'));
+      await ing.ingest('com.phonepe.app', 'Txn alert', '₹240 to Big Bazaar done', t0);
+      expect(calls, hasLength(1));
+      expect(repo.items.single.payee, 'Big Bazaar');
+      expect(repo.items.single.amount, 240);
+    });
+
+    test('Money received is dropped without asking the AI', () async {
+      final ing = ingestor(() async => const Ignored());
+      await ing.ingest(gpay, 'Money received', '₹500 received from Asha', t0);
+      expect(calls, isEmpty);
+      expect(repo.items, isEmpty);
+    });
+
+    test('Offline: alert waits on the device, then is read on retry', () async {
+      var online = false;
+      final ing = ingestor(() async {
+        if (!online) throw Exception('offline');
+        return UpiPayment(75, 'Kirana', t0, 'Paytm');
+      });
+      await ing.ingest('net.one97.paytm', 'Alert', 'Rs 75 debited for UPI txn', t0);
+      expect(repo.items, isEmpty);
+      expect(await db.queuedAlerts(), hasLength(1));
+      online = true;
+      await ing.retryQueued();
+      expect(repo.items.single.payee, 'Kirana');
+      expect(await db.queuedAlerts(), isEmpty);
+    });
+
+    test('Edge Function JSON maps to payment, ATM or nothing', () {
+      expect(alertFromJson({'kind': 'payment', 'amount': 90, 'payee': 'Zomato'}, 'Paytm', t0), isA<UpiPayment>());
+      expect(alertFromJson({'kind': 'atm', 'amount': 2000, 'payee': null}, 'HDFC Bank', t0), isA<AtmWithdrawal>());
+      expect(alertFromJson({'kind': 'other', 'amount': 500, 'payee': null}, 'Paytm', t0), isA<Ignored>());
+      expect(alertFromJson({'kind': 'payment', 'amount': null, 'payee': 'X'}, 'Paytm', t0), isA<Ignored>());
     });
   });
 }

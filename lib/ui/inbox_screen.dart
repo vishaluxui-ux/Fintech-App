@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../data/repository.dart';
+import '../domain/ledger.dart' as ledger;
 import '../domain/models.dart';
 import '../services/bill_parser.dart';
 import 'bill_screen.dart';
@@ -20,8 +21,22 @@ class InboxScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final repo = context.watch<Repository>();
     final groups = repo.inbox;
+    final unflagged = ledger.unflaggedPending(repo.items).length;
     return Scaffold(
-      appBar: AppBar(title: const Text('Inbox')),
+      appBar: AppBar(title: const Text('Inbox'), actions: [
+        if (unflagged > 0)
+          TextButton.icon(
+            onPressed: () async {
+              final n = await repo.approveAllUnflagged();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('Approved $n item${n == 1 ? '' : 's'}. Flagged ones still need a look.')));
+              }
+            },
+            icon: const Icon(Icons.done_all),
+            label: Text('Approve $unflagged'),
+          ),
+      ]),
       floatingActionButton: _AddMenu(),
       body: groups.isEmpty
           ? const Center(
@@ -187,20 +202,25 @@ class _AddMenu extends StatelessWidget {
 
 /// CAP-02: pick or take a photo, send it for parsing, add the lines as pending.
 Future<void> scanBill(BuildContext context, ImageSource source) async {
+  final picked = await ImagePicker().pickImage(source: source, maxWidth: 2000, imageQuality: 85);
+  if (picked == null || !context.mounted) return;
+  await scanBillFile(context, picked.path);
+}
+
+/// Reads a bill photo or payment screenshot at [path] (picked, taken, or shared into the app).
+Future<void> scanBillFile(BuildContext context, String path) async {
   final repo = context.read<Repository>();
   final parser = context.read<BillParser>();
   final nav = Navigator.of(context);
   final messenger = ScaffoldMessenger.of(context);
-  final picked = await ImagePicker().pickImage(source: source, maxWidth: 2000, imageQuality: 85);
-  if (picked == null) return;
   messenger.showSnackBar(const SnackBar(content: Text('Reading the bill…')));
   try {
-    final bill = await parser.parse(File(picked.path));
+    final bill = await parser.parse(File(path));
     if (bill.lines.isEmpty) {
       messenger.showSnackBar(const SnackBar(content: Text('No items found. Try a clearer photo, or add them manually.')));
       return;
     }
-    final cap = await repo.addBill(bill, imagePath: picked.path);
+    final cap = await repo.addBill(bill, imagePath: path);
     messenger.hideCurrentSnackBar();
     nav.push(MaterialPageRoute(builder: (_) => BillScreen(captureId: cap.id)));
   } catch (e) {

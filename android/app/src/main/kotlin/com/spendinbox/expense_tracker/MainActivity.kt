@@ -2,6 +2,8 @@ package com.spendinbox.expense_tracker
 
 import android.content.ComponentName
 import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -11,6 +13,31 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    // A screenshot shared from a UPI app (or any app), copied into the cache.
+    private var sharedImagePath: String? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        captureShare(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        captureShare(intent)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun captureShare(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_SEND || intent.type?.startsWith("image/") != true) return
+        val uri: Uri = intent.getParcelableExtra(Intent.EXTRA_STREAM) ?: return
+        try {
+            val ext = if (intent.type == "image/png") "png" else "jpg"
+            val out = java.io.File(cacheDir, "shared_${System.currentTimeMillis()}.$ext")
+            contentResolver.openInputStream(uri)?.use { input -> out.outputStream().use { input.copyTo(it) } }
+            sharedImagePath = out.absolutePath
+        } catch (_: Exception) { }
+    }
+
     override fun configureFlutterEngine(engine: FlutterEngine) {
         super.configureFlutterEngine(engine)
         MethodChannel(engine.dartExecutor.binaryMessenger, "spendinbox/notifications").setMethodCallHandler { call, result ->
@@ -21,6 +48,7 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
                 "drain" -> result.success(UpiNotificationListener.drain(applicationContext))
+                "takeSharedImage" -> { result.success(sharedImagePath); sharedImagePath = null }
                 else -> result.notImplemented()
             }
         }

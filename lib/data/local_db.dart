@@ -13,8 +13,9 @@ class LocalDb {
     final f = factory ?? databaseFactory;
     final dbPath = path ?? p.join(await f.getDatabasesPath(), 'spend.db');
     final db = await f.openDatabase(dbPath,
-        options: OpenDatabaseOptions(version: 2, onUpgrade: (db, from, _) async {
+        options: OpenDatabaseOptions(version: 3, onUpgrade: (db, from, _) async {
           if (from < 2) await _v2(db);
+          if (from < 3) await _v3(db);
         }, onCreate: (db, _) async {
           await db.execute('''CREATE TABLE captures(id TEXT PRIMARY KEY, source TEXT NOT NULL,
             source_app TEXT, captured_at TEXT NOT NULL, bill_total REAL, image_path TEXT, withdrawal_id TEXT)''');
@@ -25,6 +26,7 @@ class LocalDb {
             source_app TEXT)''');
           await db.execute('CREATE TABLE outbox(tbl TEXT NOT NULL, id TEXT NOT NULL, PRIMARY KEY(tbl, id))');
           await _v2(db);
+          await _v3(db);
         }));
     return LocalDb(db);
   }
@@ -33,6 +35,20 @@ class LocalDb {
     await db.execute('ALTER TABLE captures ADD COLUMN adjust_reason TEXT');
     await db.execute('ALTER TABLE captures ADD COLUMN adjust_note TEXT');
   }
+
+  static Future<void> _v3(Database db) async {
+    await db.execute('ALTER TABLE items ADD COLUMN auto_approved INTEGER NOT NULL DEFAULT 0');
+    // Alerts waiting for the AI to read them (offline or server error). Device only.
+    await db.execute('''CREATE TABLE alert_queue(id INTEGER PRIMARY KEY AUTOINCREMENT, package TEXT NOT NULL,
+      title TEXT NOT NULL, body TEXT NOT NULL, posted_at INTEGER NOT NULL)''');
+  }
+
+  Future<void> queueAlert(String pkg, String title, String body, DateTime at) => db.insert('alert_queue',
+      {'package': pkg, 'title': title, 'body': body, 'posted_at': at.millisecondsSinceEpoch});
+
+  Future<List<Map<String, Object?>>> queuedAlerts() => db.query('alert_queue', orderBy: 'id');
+
+  Future<void> dropQueuedAlert(int id) => db.delete('alert_queue', where: 'id = ?', whereArgs: [id]);
 
   Future<void> _put(String table, Map<String, Object?> row) => db.transaction((t) async {
         await t.insert(table, row, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -71,7 +87,7 @@ class LocalDb {
   }
 
   Future<void> wipe() async {
-    for (final t in ['captures', 'items', 'withdrawals', 'outbox']) {
+    for (final t in ['captures', 'items', 'withdrawals', 'outbox', 'alert_queue']) {
       await db.delete(t);
     }
   }

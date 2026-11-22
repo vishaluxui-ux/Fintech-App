@@ -23,6 +23,19 @@ class Settings extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Approve payments to a merchant you've approved twice with the same category.
+  bool get autoApproveKnown => _p.getBool('auto_approve_known') ?? true;
+  set autoApproveKnown(bool v) {
+    _p.setBool('auto_approve_known', v);
+    notifyListeners();
+  }
+
+  bool get weeklySummary => _p.getBool('weekly_summary') ?? true;
+  set weeklySummary(bool v) {
+    _p.setBool('weekly_summary', v);
+    notifyListeners();
+  }
+
   bool get notificationExplainerSeen => _p.getBool('notif_explainer_seen') ?? false;
   set notificationExplainerSeen(bool v) => _p.setBool('notif_explainer_seen', v);
 

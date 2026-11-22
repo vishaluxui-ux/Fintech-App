@@ -117,6 +117,7 @@ class Item {
   final String? flagReason; // APR-04 / duplicates
   final String? payee;
   final DateTime updatedAt;
+  final bool autoApproved; // approved by the known-merchant rule, not by hand
 
   const Item({
     required this.id,
@@ -129,6 +130,7 @@ class Item {
     required this.updatedAt,
     this.flagReason,
     this.payee,
+    this.autoApproved = false,
   });
 
   bool get counts => status == ItemStatus.approved;
@@ -153,6 +155,7 @@ class Item {
         payee: payee,
         flagReason: clearFlag ? null : (flagReason ?? this.flagReason),
         updatedAt: DateTime.now(),
+        autoApproved: autoApproved,
       );
 
   Map<String, Object?> toMap() => {
@@ -166,6 +169,7 @@ class Item {
         'flag_reason': flagReason,
         'payee': payee,
         'updated_at': updatedAt.toUtc().toIso8601String(),
+        'auto_approved': autoApproved ? 1 : 0,
       };
 
   factory Item.fromMap(Map<String, Object?> m) => Item(
@@ -179,6 +183,7 @@ class Item {
         flagReason: m['flag_reason'] as String?,
         payee: m['payee'] as String?,
         updatedAt: DateTime.parse(m['updated_at'] as String).toLocal(),
+        autoApproved: (m['auto_approved'] as num? ?? 0) != 0,
       );
 }
 

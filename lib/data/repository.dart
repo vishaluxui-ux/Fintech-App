@@ -59,27 +59,40 @@ class Repository extends ChangeNotifier {
     }
   }
 
+  LocalDb get db => _db;
+
   Future<void> _addPayment(UpiPayment p) async {
     final cap = Capture(id: newId(), source: CaptureSource.upiNotification, sourceApp: p.sourceApp, capturedAt: p.at);
     var status = ItemStatus.pending;
     var flag = ledger.flagFor(payee: p.payee, knownPayees: _knownPayees);
+    var category = _guessCategory(p.payee);
+    var auto = false;
     final dup = ledger.findDuplicate(amount: p.amount, payee: p.payee, at: p.at, existing: items);
     if (dup != null) {
       final o = ledger.duplicateOutcome(settings.duplicateMode, dup);
       status = o.status;
       flag = o.flag;
+    } else if (settings.autoApproveKnown) {
+      final known = ledger.knownMerchantCategory(p.payee, items);
+      if (known != null) {
+        status = ItemStatus.approved;
+        category = known;
+        flag = null;
+        auto = true;
+      }
     }
     final item = Item(
       id: newId(),
       captureId: cap.id,
       name: p.payee,
       amount: p.amount,
-      categoryId: _guessCategory(p.payee),
+      categoryId: category,
       status: status,
       spentAt: p.at,
       payee: p.payee,
       flagReason: flag,
       updatedAt: DateTime.now(),
+      autoApproved: auto,
     );
     await _saveCapture(cap, [item]);
   }
@@ -240,6 +253,16 @@ class Repository extends ChangeNotifier {
     for (final i in items.where((i) => i.captureId == captureId && i.status == ItemStatus.pending).toList()) {
       await approve(i.id);
     }
+  }
+
+  /// One tap: approve every pending item that has no flag. Flagged ones still need a look.
+  Future<int> approveAllUnflagged() async {
+    final list = ledger.unflaggedPending(items);
+    for (final i in list) {
+      await _update(i.id, (x) => x.copyWith(status: ItemStatus.approved), notify: false);
+    }
+    if (list.isNotEmpty) _changed();
+    return list.length;
   }
 
   /// Rejected: kept for duplicate checks and parsing feedback, never counted.
