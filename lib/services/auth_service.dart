@@ -6,7 +6,11 @@ class AuthService {
   AuthService(this.client);
 
   /// Sends a sign-in code to [email]. Creates the account on first use.
-  Future<void> sendCode(String email) => client.auth.signInWithOtp(email: email.trim(), shouldCreateUser: true);
+  /// The email carries a link back into the app (and a code, once custom SMTP
+  /// lets us edit the template). Either one signs the user in.
+  static const redirect = 'com.spendinbox.expense_tracker://login-callback';
+  Future<void> sendCode(String email) =>
+      client.auth.signInWithOtp(email: email.trim(), shouldCreateUser: true, emailRedirectTo: redirect);
 
   Future<void> verifyCode(String email, String code) =>
       client.auth.verifyOTP(type: OtpType.email, email: email.trim(), token: code.trim());

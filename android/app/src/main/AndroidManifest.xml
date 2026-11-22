@@ -28,6 +28,13 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Sign-in link from the email opens the app (supabase_flutter completes the sign-in). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="com.spendinbox.expense_tracker" android:host="login-callback"/>
+            </intent-filter>
         </activity>
         <!-- Reads UPI/bank payment alerts only. No SMS, no accessibility service. -->
         <service

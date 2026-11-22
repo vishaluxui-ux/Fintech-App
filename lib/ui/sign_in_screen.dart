@@ -88,7 +88,8 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
             if (_codeSent) ...[
               const SizedBox(height: 8),
-              Text('We sent a code to ${_email.text.trim()}. It can take a minute; check spam too.', style: t.bodySmall),
+              Text('We emailed ${_email.text.trim()}. Open the email on this phone and tap the link, '
+                  'or type the code if the email has one. Check spam too.', style: t.bodySmall),
               const SizedBox(height: 12),
               TextField(
                 controller: _code,
@@ -96,7 +97,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 keyboardType: TextInputType.number,
                 maxLength: 8,
                 autofillHints: const [AutofillHints.oneTimeCode],
-                decoration: const InputDecoration(labelText: 'Code', counterText: ''),
+                decoration: const InputDecoration(labelText: 'Code (if the email has one)', counterText: ''),
                 onSubmitted: (_) => _verify(),
               ),
             ],
