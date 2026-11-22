@@ -7,6 +7,7 @@ import '../domain/models.dart';
 import '../services/auth_service.dart';
 import '../services/notification_bridge.dart';
 import '../services/reminder_service.dart';
+import 'alert_check_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -111,6 +112,13 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
           subtitle: Text(_access == true ? 'On: payments are picked up automatically' : 'Off: tap to turn on'),
           trailing: _access == true ? const Icon(Icons.check_circle, color: Colors.green) : const Icon(Icons.chevron_right),
           onTap: _access == true ? () => context.read<NotificationBridge>().openSettings() : _enableNotifications,
+        ),
+        ListTile(
+          leading: const Icon(Icons.manage_search),
+          title: const Text('Check payment alerts'),
+          subtitle: const Text('See which apps sent notifications and whether they were read'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AlertCheckScreen())),
         ),
         const _Header('Less checking'),
         SwitchListTile(

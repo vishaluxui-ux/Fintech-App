@@ -14,6 +14,9 @@ class NotificationBridge {
   Future<bool> hasAccess() async => await _method.invokeMethod<bool>('hasAccess') ?? false;
   Future<void> openSettings() => _method.invokeMethod('openSettings');
 
+  /// Diagnostics: notifications the listener saw recently (newest first).
+  Future<List<Map>> recentSeen() async => await _method.invokeListMethod<Map>('recentSeen') ?? const [];
+
   /// Path of an image shared into the app, if any (consumed once).
   Future<String?> takeSharedImage() => _method.invokeMethod<String>('takeSharedImage');
 

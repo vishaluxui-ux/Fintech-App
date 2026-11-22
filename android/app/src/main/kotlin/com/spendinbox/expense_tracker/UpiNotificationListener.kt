@@ -24,6 +24,20 @@ class UpiNotificationListener : NotificationListenerService() {
         private const val KEY = "items"
         var onNew: (() -> Unit)? = null
 
+        // Diagnostics only: the last 40 notifications seen, in memory, never stored or sent.
+        // Other apps: package name and time only. Supported apps: title too.
+        private val recent = ArrayDeque<Map<String, Any>>()
+
+        @Synchronized
+        fun recentSeen(): List<Map<String, Any>> = recent.toList().reversed()
+
+        @Synchronized
+        private fun remember(pkg: String, supported: Boolean, title: String, at: Long) {
+            recent.addLast(mapOf("package" to pkg, "supported" to supported,
+                "title" to (if (supported) title else ""), "postedAt" to at))
+            while (recent.size > 40) recent.removeFirst()
+        }
+
         @Synchronized
         fun drain(ctx: Context): List<Map<String, Any>> {
             val p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -51,9 +65,11 @@ class UpiNotificationListener : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        if (sbn.packageName !in SUPPORTED) return
+        val supported = sbn.packageName in SUPPORTED
         val extras = sbn.notification.extras
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
+        if (sbn.packageName != packageName) remember(sbn.packageName, supported, title, sbn.postTime)
+        if (!supported) return
         val text = (extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
             ?: extras.getCharSequence(Notification.EXTRA_TEXT))?.toString() ?: ""
         if (title.isBlank() && text.isBlank()) return

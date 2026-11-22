@@ -48,6 +48,13 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
                 "drain" -> result.success(UpiNotificationListener.drain(applicationContext))
+                "recentSeen" -> result.success(UpiNotificationListener.recentSeen().map { n ->
+                    val pkg = n["package"] as String
+                    val label = try {
+                        packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
+                    } catch (_: Exception) { pkg }
+                    n + mapOf("label" to label)
+                })
                 "takeSharedImage" -> { result.success(sharedImagePath); sharedImagePath = null }
                 else -> result.notImplemented()
             }
