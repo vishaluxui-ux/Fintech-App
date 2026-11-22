@@ -54,6 +54,9 @@ class LocalDb {
       final rows = await db.query(t, where: 'id = ?', whereArgs: [o['id']]);
       if (rows.isNotEmpty) out.add((table: t, row: rows.first));
     }
+    // Parents before children: an item references its capture on the server.
+    const order = {'withdrawals': 0, 'captures': 1, 'items': 2};
+    out.sort((a, b) => order[a.table]!.compareTo(order[b.table]!));
     return out;
   }
 

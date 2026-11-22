@@ -264,6 +264,15 @@ void main() {
       expect((await db.pending()).map((q) => q.table), ['captures']);
     });
 
+    test('ACC-02: sync pushes parents before children', () async {
+      final w = await repo.addWithdrawal(500, t0);
+      await repo.addManual(name: 'Tea', amount: 20, categoryId: 'food', withdrawalId: w.id);
+      await repo.addBill(testBill());
+      final tables = (await db.pending()).map((q) => q.table).toList();
+      expect(tables.lastIndexOf('withdrawals') < tables.indexOf('captures'), isTrue);
+      expect(tables.lastIndexOf('captures') < tables.indexOf('items'), isTrue);
+    });
+
     test('ACC-02: remote rows apply without overwriting unsynced local edits', () async {
       await repo.addManual(name: 'Local', amount: 20, categoryId: 'food');
       final local = repo.items.single;

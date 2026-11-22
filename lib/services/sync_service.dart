@@ -32,7 +32,9 @@ class SyncService {
     _running = true;
     try {
       for (final p in await db.pending()) {
-        await client.from(p.table).upsert({...p.row, 'user_id': user.id});
+        final row = {...p.row, 'user_id': user.id};
+        if (p.table == 'captures') row['image_path'] = null; // photos never leave the phone
+        await client.from(p.table).upsert(row);
         await db.markSynced(p.table, p.row['id'] as String);
       }
       for (final t in ['captures', 'items', 'withdrawals']) {
