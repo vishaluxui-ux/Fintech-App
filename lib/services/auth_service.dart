@@ -1,34 +1,17 @@
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../config.dart';
-
-/// ACC-01: Google sign-in only (decided 2026-11-21), exchanged for a Supabase session.
+/// ACC-01: email one-time code (decided 2026-11-22; Google sign-in moved to v1).
 class AuthService {
   final SupabaseClient client;
   AuthService(this.client);
 
-  bool _initialized = false;
+  /// Sends a sign-in code to [email]. Creates the account on first use.
+  Future<void> sendCode(String email) => client.auth.signInWithOtp(email: email.trim(), shouldCreateUser: true);
 
-  Future<void> _init() async {
-    if (_initialized) return;
-    await GoogleSignIn.instance.initialize(serverClientId: Config.googleWebClientId);
-    _initialized = true;
-  }
+  Future<void> verifyCode(String email, String code) =>
+      client.auth.verifyOTP(type: OtpType.email, email: email.trim(), token: code.trim());
 
-  Future<void> signIn() async {
-    await _init();
-    final account = await GoogleSignIn.instance.authenticate();
-    final idToken = account.authentication.idToken;
-    if (idToken == null) throw Exception('Google did not return an ID token');
-    await client.auth.signInWithIdToken(provider: OAuthProvider.google, idToken: idToken);
-  }
-
-  Future<void> signOut() async {
-    await _init();
-    await GoogleSignIn.instance.signOut();
-    await client.auth.signOut();
-  }
+  Future<void> signOut() => client.auth.signOut();
 
   /// ACC-03: the `delete-account` Edge Function deletes the user's rows and the
   /// auth user with the service role. Local data is wiped by the caller.

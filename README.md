@@ -6,7 +6,7 @@ Android expense tracker: UPI alerts and bill photos become pending items, you ap
 
 | Open item | Decision |
 |---|---|
-| Sign-in (ACC-01) | Google only |
+| Sign-in (ACC-01) | Email one-time code (Google sign-in moved to v1) |
 | AI model | Claude Haiku (`claude-haiku-5-5`), called from a Supabase Edge Function |
 | Delete vs reject | Both. Rejected items are kept but never counted; deleted items leave all totals |
 | Duplicates | User setting: **flag** (default) or **auto-reject** |
@@ -36,10 +36,10 @@ test/acceptance_test.dart                one test per Beta acceptance check (25 
    supabase functions deploy parse-bill
    supabase functions deploy delete-account
    ```
-2. In Google Cloud, create a **Web** OAuth client and an **Android** OAuth client (package `com.spendinbox.expense_tracker` + your SHA-1). In Supabase → Authentication → Providers → Google, enable it and add the Web client ID.
+2. In Supabase → Authentication → Email Templates → **Magic Link**, put `{{ .Token }}` in the body so the email shows the code.
 3. Run:
    ```bash
-   flutter run --dart-define=SUPABASE_URL=https://<ref>.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=<key> --dart-define=GOOGLE_WEB_CLIENT_ID=<web-client-id>
+   flutter run --dart-define=SUPABASE_URL=https://<ref>.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=<key>
    ```
 4. Tests: `flutter test`
 
