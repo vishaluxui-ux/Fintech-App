@@ -3,88 +3,68 @@
 Android expense tracker (Flutter + Supabase + Claude Haiku).
 Last updated: 22 Nov 2026
 
+**Type key:** ✅ Existing feature (F) · 🆕 New feature (N) · 🐞 Bug/issue (B) · 🔧 Improvement (I) · ❓ Open question (Q) · ✔️ Decision (D)
+
+## Master tracker
+| ID | Type | Area | Item | Status | Date |
+|---|---|---|---|---|---|
+| F-01 | ✅ Existing | Payment capture | UPI payment capture from notifications (Google Pay, PhonePe, Paytm, BHIM, Amazon Pay, CRED, iMobile, HDFC, YONO SBI, Axis). No SMS, no accessibility service | In beta | 22 Nov |
+| F-02 | ✅ Existing | Payment capture | ATM withdrawal alerts logged as unallocated cash | In beta | 22 Nov |
+| F-11 | ✅ Existing | Payment capture | Claude reads payment alerts the built-in rules can't; queued offline; logged in Supabase `alert_log` | In beta | 22 Nov |
+| F-18 | ✅ Existing | Payment capture | "Check payment alerts" diagnostics screen | In beta | 22 Nov |
+| F-03 | ✅ Existing | Bill scan | Bill scan (camera/gallery) read by Claude Haiku into item lines; payment screenshots read as one spend | In beta | 22 Nov |
+| F-04 | ✅ Existing | Bill scan | Share a screenshot/bill from any app into Spend Inbox | In beta | 22 Nov |
+| F-08 | ✅ Existing | Bill scan | Bill total mismatch sheet: Discount / Problem while printing / Line appears twice / Other; printed discounts applied automatically | In beta | 22 Nov |
+| F-05 | ✅ Existing | Inbox | Inbox grouped by bill/payment; edit, approve, approve all per bill, reject, delete, add a missed line | In beta | 22 Nov |
+| F-06 | ✅ Existing | Inbox | One-tap "Approve N" for all unflagged items | In beta | 22 Nov |
+| F-07 | ✅ Existing | Inbox | Flags with reasons: low confidence, new merchant, unknown payee, possible duplicate | In beta | 22 Nov |
+| F-09 | ✅ Existing | Inbox | Duplicate handling setting: flag or auto-reject; bill matching a UPI payment can replace it | In beta | 22 Nov |
+| F-10 | ✅ Existing | Inbox | Auto-approve known merchants (approved twice, same category), marked "Auto"; setting on/off | In beta | 22 Nov |
+| F-12 | ✅ Existing | Cash | Cash wallet: split withdrawals into spends, outstanding shown; month-end review prompt | In beta | 22 Nov |
+| F-13 | ✅ Existing | Notifications | Daily 8 pm nudge only when items/cash are waiting; Sunday 7 pm weekly summary (setting) | In beta | 22 Nov |
+| F-14 | ✅ Existing | Dashboard | Approved total, by category, recent list, inbox count. Pending never counts | In beta | 22 Nov |
+| F-15 | ✅ Existing | Account & sync | Email sign-in (code or link); offline-first storage with sync to Supabase (RLS per user) | In beta | 22 Nov |
+| F-16 | ✅ Existing | Account & sync | Delete account and all data in the app | In beta | 22 Nov |
+| F-17 | ✅ Existing | Settings | Bill photo setting: keep after approval or delete | In beta | 22 Nov |
+| F-19 | ✅ Existing | Quality | 51 automated tests passing | In beta | 22 Nov |
+| N-01 | 🆕 New | Payment capture | SMS reading as opt-in — only if Play approves (depends on Q-01) | Planned v1 | 22 Nov |
+| N-02 | 🆕 New | Money | Pro subscription via RevenueCat: ₹99/month or ₹799/year; free = 15 bill scans/month | Planned v1 | 22 Nov |
+| N-03 | 🆕 New | Budgets | Category budgets with overspend alerts | Planned v1 | 22 Nov |
+| N-04 | 🆕 New | Language | Hindi interface | Planned v1 | 22 Nov |
+| N-05 | 🆕 New | Cash | Cash count reconciliation | Planned v1 | 22 Nov |
+| N-06 | 🆕 New | Payment capture | Forwarded email receipts | Planned v1 | 22 Nov |
+| N-07 | 🆕 New | Account & sync | Google sign-in (moved from beta) | Planned v1 | 22 Nov |
+| N-08 | 🆕 New | Dashboard | Good/bad spending tag per category (needs Q-02) | Planned v1 | 22 Nov |
+| N-09 | 🆕 New | Account & sync | Household mode | Later | 22 Nov |
+| B-05 | 🐞 Bug | Payment capture | ₹1 payments via Google Pay and CRED not captured — these apps usually post no notification for outgoing payments | 🔴 Open — see Q-01 | 22 Nov |
+| B-04 | 🐞 Bug | Bill scan | Payment screenshot shared → "No items found" | 🟡 Fixed (server) — user to retest | 22 Nov |
+| B-06 | 🐞 Bug | Setup | Sideloaded APK: Android blocks notification access until "Allow restricted settings" | 🟡 Known; fine from Play. See I-01 | 22 Nov |
+| B-07 | 🐞 Bug | Account & sync | Supabase default email sends a link, not a code; code needs custom SMTP | 🟡 Workaround: link opens app. See I-02 | 22 Nov |
+| B-01 | 🐞 Bug | Bill scan | Same bill scanned twice counted twice | 🟢 Fixed | 22 Nov |
+| B-02 | 🐞 Bug | Account & sync | Items not saving to server (new Supabase projects need table grants) | 🟢 Fixed | 22 Nov |
+| B-03 | 🐞 Bug | Account & sync | Sync pushed items before their bill → rejected | 🟢 Fixed | 22 Nov |
+| I-01 | 🔧 Improve | Setup | In-app steps for "Allow restricted settings" when access is blocked (B-06) | To do | 22 Nov |
+| I-02 | 🔧 Improve | Account & sync | Custom SMTP (Gmail or Resend) — Supabase built-in email sends only a few per hour | To do — before 10 Dec | 22 Nov |
+| I-03 | 🔧 Improve | Play release | Permanent release signing key (needed for Play) | To do | 22 Nov |
+| I-04 | 🔧 Improve | AI cost | Spend limit on Anthropic console (e.g. US$10/month) | To do | 22 Nov |
+| I-05 | 🔧 Improve | Branding | App icon and name (currently Flutter default icon) | To do | 22 Nov |
+| Q-01 | ❓ Open | Payment capture | How to capture payments when UPI apps don't notify? A) bank app alerts, B) share screenshot, C) SMS opt-in. Suggested: beta with A+B, measure, apply for C in v1. Need: user's bank + diagnostics screenshot | Due 23 Nov | 22 Nov |
+| Q-02 | ❓ Open | Dashboard | Good/bad spending definition per category (blocks N-08) | Open | 22 Nov |
+| Q-03 | ❓ Open | Play release | Play Console registration (US$25) and identity verification | Not done — needed before 10 Dec | 22 Nov |
+| D-01 | ✔️ Decided | Account & sync | Sign-in: email code/link for beta; Google moved to v1 | Decided | 22 Nov |
+| D-02 | ✔️ Decided | AI cost | AI model: Claude Haiku (≈5 paise per bill) | Decided | 22 Nov |
+| D-03 | ✔️ Decided | Inbox | Items can be deleted and rejected; rejected kept, never counted | Decided | 22 Nov |
+| D-04 | ✔️ Decided | Inbox | Duplicates: user setting (flag / auto-reject) | Decided | 22 Nov |
+| D-05 | ✔️ Decided | Settings | Bill photos: user setting (keep / delete after approval) | Decided | 22 Nov |
+| D-06 | ✔️ Decided | Money | Pricing: Free + Pro ₹99/month or ₹799/year; free limit 15 scans/month | Decided | 22 Nov |
+| D-07 | ✔️ Decided | Tools | User uses only Claude chat + phone + Supabase/Play websites; no VS Code/Android Studio | Decided | 22 Nov |
+
 ## Key dates
 | Date | Milestone |
 |---|---|
 | 10 Dec 2026 | Closed beta: 12+ testers installed, running 14 days |
 | ~24 Dec 2026 | Apply for production |
 | Before 1 Jan 2027 | Play Store production launch |
-
-## 1. Existing features (built and in the beta APK)
-| ID | Date | Feature |
-|---|---|---|
-| F-01 | 22 Nov | UPI payment capture from notifications (Google Pay, PhonePe, Paytm, BHIM, Amazon Pay, CRED, iMobile, HDFC, YONO SBI, Axis). No SMS, no accessibility service |
-| F-02 | 22 Nov | ATM withdrawal alerts logged as unallocated cash |
-| F-03 | 22 Nov | Bill scan (camera/gallery) read by Claude Haiku into item lines; payment screenshots read as one spend (fixed 22 Nov) |
-| F-04 | 22 Nov | Share a screenshot/bill from any app into Spend Inbox |
-| F-05 | 22 Nov | Inbox grouped by bill/payment; edit, approve, approve all per bill, reject, delete, add a missed line |
-| F-06 | 22 Nov | One-tap "Approve N" for all unflagged items |
-| F-07 | 22 Nov | Flags with reasons: low confidence, new merchant, unknown payee, possible duplicate |
-| F-08 | 22 Nov | Bill total mismatch sheet: Discount (spread over lines) / Problem while printing / Line appears twice / Other (reason + actual total); printed discounts applied automatically |
-| F-09 | 22 Nov | Duplicate handling setting: flag or auto-reject (UPI payments and re-scanned bills); bill matching a UPI payment can replace it |
-| F-10 | 22 Nov | Auto-approve known merchants (approved twice, same category), marked "Auto"; setting on/off |
-| F-11 | 22 Nov | Claude reads payment alerts the built-in rules can't; queued offline; logged in Supabase `alert_log` |
-| F-12 | 22 Nov | Cash wallet: split withdrawals into spends, outstanding shown; month-end review prompt |
-| F-13 | 22 Nov | Notifications: daily 8 pm nudge only when items/cash are waiting; Sunday 7 pm weekly summary (setting) |
-| F-14 | 22 Nov | Spending dashboard: approved total, by category, recent list, inbox count. Pending never counts |
-| F-15 | 22 Nov | Email sign-in (code or link); offline-first local storage with sync to Supabase (RLS per user) |
-| F-16 | 22 Nov | Delete account and all data in the app |
-| F-17 | 22 Nov | Bill photo setting: keep after approval or delete |
-| F-18 | 22 Nov | "Check payment alerts" diagnostics screen |
-| F-19 | 22 Nov | 51 automated tests passing |
-
-## 2. New features (planned, not built)
-| ID | Date | Feature | Target | Notes |
-|---|---|---|---|---|
-| N-01 | 22 Nov | SMS reading as opt-in | v1 | Only if Play approves — depends on Q-01 |
-| N-02 | 22 Nov | Pro subscription via RevenueCat: ₹99/month or ₹799/year; free = 15 bill scans/month | v1 | |
-| N-03 | 22 Nov | Category budgets with overspend alerts | v1 | |
-| N-04 | 22 Nov | Hindi interface | v1 | |
-| N-05 | 22 Nov | Cash count reconciliation | v1 | |
-| N-06 | 22 Nov | Forwarded email receipts | v1 | |
-| N-07 | 22 Nov | Google sign-in | v1 | Moved from beta |
-| N-08 | 22 Nov | Good/bad spending tag per category | v1 | Needs decision — Q-02 |
-| N-09 | 22 Nov | Household mode | Later | |
-
-## 3. Bugs & issues log
-| ID | Date | Issue | Status |
-|---|---|---|---|
-| B-01 | 22 Nov | Same bill scanned twice counted twice | Fixed 22 Nov |
-| B-02 | 22 Nov | Items not saving to server (new Supabase projects need table grants) | Fixed 22 Nov |
-| B-03 | 22 Nov | Sync pushed items before their bill → rejected | Fixed 22 Nov |
-| B-04 | 22 Nov | Payment screenshot shared → "No items found" | Fixed 22 Nov (server) — user to retest |
-| B-05 | 22 Nov | ₹1 payments via Google Pay and CRED not captured: these apps usually post no notification for outgoing payments | Open — see Q-01 |
-| B-06 | 22 Nov | Sideloaded APK: Android blocks notification access until "Allow restricted settings" | Known; fine once installed from Play. Idea: in-app help (I-01) |
-| B-07 | 22 Nov | Supabase default email sends a link not a code; code needs custom SMTP (Gmail app password) | Workaround: link opens app (see I-02) |
-
-## 4. Improvements
-| ID | Date | Improvement | Status |
-|---|---|---|---|
-| I-01 | 22 Nov | In-app steps for "Allow restricted settings" when access is blocked (B-06) | To do |
-| I-02 | 22 Nov | Custom SMTP (Gmail or Resend) before testers join — Supabase built-in email sends only a few emails/hour | To do — before 10 Dec |
-| I-03 | 22 Nov | Permanent release signing key (needed for Play) | To do |
-| I-04 | 22 Nov | Spend limit on Anthropic console (e.g. US$10/month) | To do |
-| I-05 | 22 Nov | App icon and name branding (currently Flutter default icon) | To do |
-
-## 5. Questions & decisions
-
-### Open
-| ID | Date | Question | Notes |
-|---|---|---|---|
-| Q-01 | 22 Nov | How to capture payments when UPI apps don't notify? A) bank app alerts, B) share screenshot, C) SMS opt-in | For 23 Nov. Suggested: beta with A+B, measure capture rate, apply for C in v1. Need: user's bank + "Check payment alerts" screenshot |
-| Q-02 | 22 Nov | Good/bad spending definition per category | Blocks N-08 |
-| Q-03 | 22 Nov | Play Console registration (US$25) and identity verification | Not yet done — needed before 10 Dec |
-
-### Decided
-| ID | Date | Decision |
-|---|---|---|
-| D-01 | 22 Nov | Sign-in: email code/link for beta (Google moved to v1) |
-| D-02 | 22 Nov | AI model: Claude Haiku (≈5 paise per bill) |
-| D-03 | 22 Nov | Items can be deleted and rejected; rejected kept, never counted |
-| D-04 | 22 Nov | Duplicates: user setting (flag / auto-reject) |
-| D-05 | 22 Nov | Bill photos: user setting (keep / delete after approval) |
-| D-06 | 22 Nov | Pricing: Free + Pro ₹99/month or ₹799/year; free limit 15 scans/month |
-| D-07 | 22 Nov | Tools: user uses only this Claude chat + phone + Supabase/Play websites; no VS Code/Android Studio |
 
 ## Accounts and services (no secrets here)
 | Service | Details |
