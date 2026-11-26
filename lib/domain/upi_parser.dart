@@ -51,9 +51,22 @@ final _payeePatterns = <RegExp>[
   RegExp(r'\bat\s+(.+?)(?:\s+(?:on|via|using|ref)\b|[.,]|$)', caseSensitive: false),
 ];
 
-/// True when the alert is clearly not a spend (money in, a request, a failure).
-/// These are dropped without asking the AI.
-bool clearlyNotSpend(String title, String text) => _received.hasMatch('$title $text');
+// Marketing from payment apps: offers, loans, prizes, tips. Never a spend.
+final _promo = RegExp(
+    r'\b(win|won|offer|offers|loan|emi|emis|lakh|pre-?approved|eligible|available for you|reward expires|'
+    r'tap to|tap before|learn more|trends|limit increase|credit score|invest|sip|gold)\b',
+    caseSensitive: false);
+
+// A "payee" that is really ad or button text.
+final _junkPayee = RegExp(r'\b(claim|reward|rewards|tap|offer|view|check|know more|unlock|cashback)\b',
+    caseSensitive: false);
+
+/// True when the alert is clearly not a spend (money in, a request, a failure,
+/// or marketing). These are dropped without asking the AI.
+bool clearlyNotSpend(String title, String text) {
+  final all = '$title $text';
+  return _received.hasMatch(all) || (_promo.hasMatch(all) && !_paid.hasMatch(all));
+}
 
 double? parseAmount(String text) {
   final m = _amount.firstMatch(text);
@@ -76,14 +89,14 @@ NotificationResult parseNotification({
   if (_atm.hasMatch(body) && !_received.hasMatch(body)) {
     return AtmWithdrawal(amount, postedAt, app);
   }
-  if (_received.hasMatch(body) || !_paid.hasMatch(body)) return const Ignored();
+  if (clearlyNotSpend(title, text) || !_paid.hasMatch(body)) return const Ignored();
 
   String payee = 'Unknown payee';
   for (final p in _payeePatterns) {
     final m = p.firstMatch(text.isNotEmpty ? text : title) ?? p.firstMatch(body);
     if (m != null) {
       final candidate = m.group(1)!.trim();
-      if (candidate.isNotEmpty && parseAmount(candidate) == null) {
+      if (candidate.isNotEmpty && parseAmount(candidate) == null && !_junkPayee.hasMatch(candidate)) {
         payee = candidate;
         break;
       }

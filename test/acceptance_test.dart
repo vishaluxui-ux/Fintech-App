@@ -581,4 +581,33 @@ void main() {
       expect(ledger.findPaymentForBill(testBill(), t0.add(const Duration(days: 1)), repo.captures, repo.items), isNull);
     });
   });
+
+  group('Payment app ads and junk payees (from real beta alerts)', () {
+    NotificationResult p(String pkg, String title, String text) =>
+        parseNotification(packageName: pkg, title: title, text: text, postedAt: t0);
+    const cred = 'com.dreamplug.androidapp';
+
+    test('Ads are ignored by the rules and never sent to the AI', () {
+      for (final a in [
+        ['available for you: ₹4,64,827', 'withdraw any amount from your CRED cash account before November 30th'],
+        ['EMIs from ₹1,000 to fund big purchase', 'Take a personal loan of up to ₹40 lakh & enjoy low EMIs. Tap to learn more'],
+        ['win Oaklely Meta sunglasses', 'worth ₹52,300. tap before the reward expires.'],
+        ['CRED money: bank charges detected', '₹40.20 charged on 24th Nov • view last 6-month trends on bank charges'],
+      ]) {
+        expect(p(cred, a[0], a[1]), isA<Ignored>(), reason: a[0]);
+        expect(clearlyNotSpend(a[0], a[1]), isTrue, reason: a[0]);
+      }
+    });
+
+    test('Ad text is never used as the payee', () {
+      final r = p(cred, 'claim your reward', '₹176.39 paid successfully') as UpiPayment;
+      expect(r.payee, 'Unknown payee'); // goes to the AI for the real payee
+    });
+
+    test('A real payment that mentions a reward still counts', () {
+      final r = p(cred, 'payment successful', 'paid ₹314.35 to Airtel. claim your reward') as UpiPayment;
+      expect(r.amount, 314.35);
+      expect(r.payee, 'Airtel');
+    });
+  });
 }
