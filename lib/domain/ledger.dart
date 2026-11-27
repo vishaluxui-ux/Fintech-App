@@ -117,27 +117,6 @@ Item? findDuplicate(
   return null;
 }
 
-/// The same payment seen twice: once as an app alert and once as a bank SMS.
-/// Same amount within 10 minutes, from the other kind of source. Payee names differ
-/// between the two (a name vs a UPI ID), so payee is not compared.
-bool isSmsSource(String? sourceApp) => sourceApp?.endsWith(' SMS') ?? false;
-
-Item? findCrossSourceTwin(
-    {required double amount,
-    required DateTime at,
-    required bool fromSms,
-    required Iterable<Capture> captures,
-    required Iterable<Item> existing}) {
-  final caps = {for (final c in captures) c.id: c};
-  for (final i in existing) {
-    final c = caps[i.captureId];
-    if (c == null || c.source != CaptureSource.upiNotification || i.status == ItemStatus.deleted) continue;
-    if (isSmsSource(c.sourceApp) == fromSms) continue;
-    if ((i.amount - amount).abs() < 0.005 && i.spentAt.difference(at).abs() <= duplicateWindow) return i;
-  }
-  return null;
-}
-
 /// Status and flag a new item gets when it duplicates another, per the user's setting.
 ({ItemStatus status, String flag}) duplicateOutcome(DuplicateMode mode, Item original) => (
       status: mode == DuplicateMode.autoReject ? ItemStatus.rejected : ItemStatus.pending,

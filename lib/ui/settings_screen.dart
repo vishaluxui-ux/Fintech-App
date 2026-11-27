@@ -8,7 +8,6 @@ import '../services/auth_service.dart';
 import '../services/notification_bridge.dart';
 import '../services/refresh_service.dart';
 import '../services/reminder_service.dart';
-import '../services/sms_service.dart';
 import 'alert_check_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -25,7 +24,6 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _check();
-    _checkSms();
   }
 
   @override
@@ -36,10 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState s) {
-    if (s == AppLifecycleState.resumed) {
-      _check();
-      _checkSms();
-    }
+    if (s == AppLifecycleState.resumed) _check();
   }
 
   Future<void> _check() async {
@@ -58,7 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
         content: const Text(
             'Spend Inbox reads notifications only from UPI and banking apps (Google Pay, PhonePe, Paytm, BHIM and your bank) '
             'to pick up the amount, payee and time of a payment or ATM withdrawal.\n\n'
-            'Notifications from every other app are ignored and never stored.\n\n'
+            'Notifications from every other app are ignored and never stored. We do not read SMS.\n\n'
             'On the next screen, turn on Spend Inbox.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Not now')),
@@ -72,54 +67,6 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
       await context.read<ReminderService>().requestPermission();
       await bridge.openSettings();
     }
-  }
-
-  bool? _smsGranted;
-
-  Future<void> _checkSms() async {
-    final g = await context.read<SmsService>().granted().catchError((_) => false);
-    if (mounted) setState(() => _smsGranted = g);
-  }
-
-  /// Bank SMS is opt-in: explain exactly what is read, then ask Android for permission.
-  Future<void> _toggleSms(bool on) async {
-    final settings = context.read<Settings>();
-    if (!on) {
-      settings.readBankSms = false;
-      return;
-    }
-    final go = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Read bank SMS'),
-        content: const Text(
-            'Catches payments that your UPI app doesn\'t notify you about, by reading the debit SMS your bank sends.\n\n'
-            '• Only SMS from bank senders (like AD-HDFCBK) are read. Personal messages and OTPs are skipped.\n'
-            '• SMS are read on this phone only. The text is never saved or sent to our servers or our AI.\n'
-            '• Only the amount, payee and time of a spend are kept, in your inbox for you to approve.\n'
-            '• The first check looks at the last ${SmsService.firstReadDays} days.\n\n'
-            'You can turn this off any time.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Not now')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Allow')),
-        ],
-      ),
-    );
-    if (go != true || !mounted) return;
-    final sms = context.read<SmsService>();
-    final refresher = context.read<RefreshService>();
-    final messenger = ScaffoldMessenger.of(context);
-    final granted = await sms.request().catchError((_) => false);
-    if (!mounted) return;
-    setState(() => _smsGranted = granted);
-    if (!granted) {
-      messenger.showSnackBar(const SnackBar(
-          content: Text('SMS permission was not given. You can allow it in Android Settings > Apps > Spend Inbox > Permissions.')));
-      return;
-    }
-    settings.readBankSms = true;
-    final r = await refresher.refresh();
-    messenger.showSnackBar(SnackBar(content: Text(r.message)));
   }
 
   Future<void> _deleteAccount() async {
@@ -167,19 +114,10 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
           trailing: _access == true ? const Icon(Icons.check_circle, color: Colors.green) : const Icon(Icons.chevron_right),
           onTap: _access == true ? () => context.read<NotificationBridge>().openSettings() : _enableNotifications,
         ),
-        SwitchListTile(
-          secondary: const Icon(Icons.sms_outlined),
-          value: s.readBankSms && _smsGranted == true,
-          onChanged: _toggleSms,
-          title: const Text('Bank SMS'),
-          subtitle: Text(s.readBankSms && _smsGranted == false
-              ? 'Permission was removed. Turn on again to allow it.'
-              : 'Read debit SMS from your bank, on this phone only. Catches payments with no app alert.'),
-        ),
         ListTile(
           leading: const Icon(Icons.refresh),
           title: const Text('Check for new payments now'),
-          subtitle: const Text('Reads new payment alerts and bank SMS, then syncs'),
+          subtitle: const Text('Reads new payment alerts, then syncs'),
           onTap: () async {
             final messenger = ScaffoldMessenger.of(context);
             final r = await context.read<RefreshService>().refresh();
@@ -247,7 +185,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
         const Padding(
           padding: EdgeInsets.all(16),
           child: Text('Bill photos, and payment alerts the app can\'t read by itself, are sent to Anthropic\'s Claude '
-              'to read them. They are not used to train models. Bank SMS are read on this phone only and never sent.',
+              'to read them. They are not used to train models.',
               style: TextStyle(fontSize: 12)),
         ),
       ]),

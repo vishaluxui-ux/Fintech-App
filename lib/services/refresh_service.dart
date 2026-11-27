@@ -1,15 +1,12 @@
 import '../data/repository.dart';
-import '../data/settings.dart';
 import 'notification_bridge.dart';
-import 'sms_service.dart';
 import 'sync_service.dart';
 
 /// What one refresh found.
 class RefreshResult {
   final int newItems;
   final int newWithdrawals;
-  final bool smsOn;
-  const RefreshResult(this.newItems, this.newWithdrawals, this.smsOn);
+  const RefreshResult(this.newItems, this.newWithdrawals);
 
   String get message {
     final parts = [
@@ -17,21 +14,19 @@ class RefreshResult {
       if (newWithdrawals > 0) '$newWithdrawals ATM withdrawal${newWithdrawals == 1 ? '' : 's'}',
     ];
     if (parts.isNotEmpty) return 'Found ${parts.join(' and ')}';
-    return smsOn ? 'Up to date. No new payments in alerts or bank SMS.' : 'Up to date. No new payment alerts.';
+    return 'Up to date. No new payment alerts.';
   }
 }
 
-/// The "check for new payments" action: payment app alerts, bank SMS (if on),
-/// alerts waiting for the AI, then a sync with the server.
+/// The "check for new payments" action: payment app alerts, alerts waiting
+/// for the AI, then a sync with the server.
 class RefreshService {
   final Repository repo;
-  final Settings settings;
   final NotificationBridge bridge;
-  final SmsService sms;
   final SyncService? sync;
   bool _running = false;
 
-  RefreshService(this.repo, this.settings, this.bridge, this.sms, this.sync);
+  RefreshService(this.repo, this.bridge, this.sync);
 
   Future<RefreshResult> refresh() async {
     final itemsBefore = repo.items.length;
@@ -40,12 +35,11 @@ class RefreshService {
       _running = true;
       try {
         await bridge.drain().catchError((_) {});
-        await sms.readNew(repo, settings).catchError((_) => 0);
         await sync?.sync();
       } finally {
         _running = false;
       }
     }
-    return RefreshResult(repo.items.length - itemsBefore, repo.withdrawals.length - wBefore, settings.readBankSms);
+    return RefreshResult(repo.items.length - itemsBefore, repo.withdrawals.length - wBefore);
   }
 }

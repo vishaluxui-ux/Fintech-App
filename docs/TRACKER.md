@@ -26,13 +26,13 @@ Last updated: 27 Nov 2026
 | F-15 | ✅ Existing | Account & sync | Email sign-in (code or link); offline-first storage with sync to Supabase (RLS per user) | In beta | 22 Nov |
 | F-16 | ✅ Existing | Account & sync | Delete account and all data in the app | In beta | 22 Nov |
 | F-17 | ✅ Existing | Settings | Bill photo setting: keep after approval or delete | In beta | 22 Nov |
-| F-19 | ✅ Existing | Quality | 59 automated tests passing | In beta | 27 Nov |
-| F-20 | ✅ Existing | Payment capture | Bank SMS reading, opt-in (Settings → Bank SMS): bank senders only, read on the phone, never sent; first check covers 30 days; same payment from app alert + SMS counted once | Built 27 Nov — needs Play SMS declaration (Q-04) | 27 Nov |
+| F-19 | ✅ Existing | Quality | 59 automated tests passing (incl. voice notes and Day/Month/Year) | In beta | 27 Nov |
+| F-20 | ✅ Existing | Manual entry | Voice notes: tap 🎤 (Spending) or Add → "Say it" (Inbox); say "Lunch 250 and auto 80 yesterday"; review lines, date and categories; Add to inbox or Add & approve. Read on the phone, free, no microphone permission (uses the phone's speech screen) | Built 27 Nov | 27 Nov |
 | F-21 | ✅ Existing | Payment capture | "Check for new payments" refresh: ↻ button and pull-down on Spending and Inbox, Settings item, and in Check payment alerts; also runs when the app opens | Built 27 Nov | 27 Nov |
 | F-22 | ✅ Existing | Dashboard | Spending filter: Day / Month / Year with ‹ › arrows and tap-to-pick a date | Built 27 Nov | 27 Nov |
 | F-23 | ✅ Existing | Dashboard | Categories tab: pie (donut) chart with total in the middle, % and item count per category; tap a category to see its transactions | Built 27 Nov | 27 Nov |
 | F-24 | ✅ Existing | Dashboard | Transactions tab and Inbox: date separators (Today, Yesterday, Wed, 25 Nov 2026) with each day's total | Built 27 Nov | 27 Nov |
-| N-01 | 🆕 New | Payment capture | SMS reading as opt-in — built as F-20; release depends on Play approval (Q-04) | Built — awaiting Play | 27 Nov |
+| N-01 | 🆕 New | Payment capture | SMS reading as opt-in. Built once, then removed on 27 Nov in favour of voice notes (F-20); code kept in git history (commit on branch feature/sms-refresh-spending-views) | Dropped for now | 27 Nov |
 | N-02 | 🆕 New | Money | Pro subscription via RevenueCat: ₹99/month or ₹799/year; free = 15 bill scans/month | Planned v1 | 22 Nov |
 | N-03 | 🆕 New | Budgets | Category budgets with overspend alerts | Planned v1 | 22 Nov |
 | N-04 | 🆕 New | Language | Hindi interface | Planned v1 | 22 Nov |
@@ -55,7 +55,6 @@ Last updated: 27 Nov 2026
 | I-05 | 🔧 Improve | Branding | App icon and name (currently Flutter default icon) | To do | 22 Nov |
 | Q-01 | ❓ Open | Payment capture | How to capture payments when UPI apps don't notify? A) bank app alerts, B) share screenshot, C) SMS opt-in. Suggested: beta with A+B, measure, apply for C in v1. Need: user's bank + diagnostics screenshot | Due 23 Nov | 22 Nov |
 | Q-02 | ❓ Open | Dashboard | Good/bad spending definition per category (blocks N-08) | Open | 22 Nov |
-| Q-04 | ❓ Open | Play release | Bank SMS needs Play's SMS permission declaration ("SMS-based money management"). Upload with SMS → review may delay or block that release. Decide: submit beta with SMS, or ship beta without and add SMS in an update | Open — decide before first Play upload | 27 Nov |
 | Q-03 | ❓ Open | Play release | Play Console registration (US$25) and identity verification | Not done — needed before 10 Dec | 22 Nov |
 | D-01 | ✔️ Decided | Account & sync | Sign-in: email code/link for beta; Google moved to v1 | Decided | 22 Nov |
 | D-02 | ✔️ Decided | AI cost | AI model: Claude Haiku (≈5 paise per bill) | Decided | 22 Nov |
@@ -63,6 +62,7 @@ Last updated: 27 Nov 2026
 | D-04 | ✔️ Decided | Inbox | Duplicates: user setting (flag / auto-reject) | Decided | 22 Nov |
 | D-05 | ✔️ Decided | Settings | Bill photos: user setting (keep / delete after approval) | Decided | 22 Nov |
 | D-06 | ✔️ Decided | Money | Pricing: Free + Pro ₹99/month or ₹799/year; free limit 15 scans/month | Decided | 22 Nov |
+| D-08 | ✔️ Decided | Manual entry | Voice input instead of SMS reading (no Play SMS approval needed) | Decided | 27 Nov |
 | D-07 | ✔️ Decided | Tools | User uses only Claude chat + phone + Supabase/Play websites; no VS Code/Android Studio | Decided | 22 Nov |
 
 ## Key dates

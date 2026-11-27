@@ -9,6 +9,7 @@ import '../services/refresh_service.dart';
 import 'item_editor.dart';
 import 'pie_chart.dart';
 import 'theme.dart';
+import 'voice_sheet.dart';
 
 /// DSH-01: approved spend for a day, month or year, by category (pie) and by date.
 /// Pending items never count.
@@ -53,6 +54,8 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
       appBar: AppBar(
         title: const Text('Spending'),
         actions: [
+          IconButton(
+              onPressed: () => startVoiceNote(context), icon: const Icon(Icons.mic_none), tooltip: 'Say an expense'),
           IconButton(
               onPressed: _refresh, icon: const Icon(Icons.refresh), tooltip: 'Check for new payments'),
         ],

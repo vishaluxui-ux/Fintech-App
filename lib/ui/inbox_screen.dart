@@ -14,6 +14,7 @@ import 'bill_screen.dart';
 import 'item_editor.dart';
 import 'mismatch_sheet.dart';
 import 'theme.dart';
+import 'voice_sheet.dart';
 
 /// APR-01: pending items grouped by bill or payment.
 class InboxScreen extends StatelessWidget {
@@ -205,6 +206,14 @@ class _AddMenu extends StatelessWidget {
         context: context,
         builder: (c) => SafeArea(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
+            ListTile(
+                leading: const Icon(Icons.mic_none),
+                title: const Text('Say it'),
+                subtitle: const Text('e.g. "Lunch 250 and auto 80"'),
+                onTap: () {
+                  Navigator.pop(c);
+                  startVoiceNote(context);
+                }),
             ListTile(
                 leading: const Icon(Icons.photo_camera_outlined),
                 title: const Text('Scan a bill'),
