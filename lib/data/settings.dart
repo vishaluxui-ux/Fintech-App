@@ -36,6 +36,22 @@ class Settings extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Bank SMS reading (opt-in). Off until the user turns it on and grants permission.
+  bool get readBankSms => _p.getBool('read_bank_sms') ?? false;
+  set readBankSms(bool v) {
+    _p.setBool('read_bank_sms', v);
+    notifyListeners();
+  }
+
+  /// Time of the newest bank SMS already read, so each SMS is read once.
+  DateTime? get lastSmsRead {
+    final ms = _p.getInt('last_sms_read');
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  set lastSmsRead(DateTime? t) =>
+      t == null ? _p.remove('last_sms_read') : _p.setInt('last_sms_read', t.millisecondsSinceEpoch);
+
   bool get notificationExplainerSeen => _p.getBool('notif_explainer_seen') ?? false;
   set notificationExplainerSeen(bool v) => _p.setBool('notif_explainer_seen', v);
 

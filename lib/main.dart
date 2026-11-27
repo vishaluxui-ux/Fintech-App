@@ -12,7 +12,9 @@ import 'services/bill_parser.dart';
 import 'services/alert_ingestor.dart';
 import 'services/alert_reader.dart';
 import 'services/notification_bridge.dart';
+import 'services/refresh_service.dart';
 import 'services/reminder_service.dart';
+import 'services/sms_service.dart';
 import 'services/sync_service.dart';
 import 'ui/home_shell.dart';
 import 'ui/sign_in_screen.dart';
@@ -31,6 +33,9 @@ Future<void> main() async {
   sync.start();
 
   final bridge = NotificationBridge(AlertIngestor(repo, AlertReader(client).read))..start();
+  final sms = SmsService();
+  final refresher = RefreshService(repo, settings, bridge, sms, sync);
+  refresher.refresh(); // picks up bank SMS that arrived while the app was closed
   final reminders = ReminderService(repo);
   await reminders.init();
 
@@ -40,6 +45,8 @@ Future<void> main() async {
     Provider.value(value: AuthService(client)),
     Provider.value(value: BillParser(client)),
     Provider.value(value: bridge),
+    Provider.value(value: sms),
+    Provider.value(value: refresher),
     Provider.value(value: reminders),
     Provider.value(value: sync),
   ], child: const SpendApp()));

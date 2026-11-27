@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../data/repository.dart';
 import '../services/notification_bridge.dart';
+import '../services/refresh_service.dart';
 import 'cash_screen.dart';
 import 'dashboard_screen.dart';
 import 'inbox_screen.dart';
@@ -34,7 +35,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState s) {
     if (s == AppLifecycleState.resumed) {
       _checkShared();
-      context.read<NotificationBridge>().drain();
+      context.read<RefreshService>().refresh();
     }
   }
 

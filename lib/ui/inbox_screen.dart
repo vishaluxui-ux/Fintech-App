@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import '../data/repository.dart';
 import '../domain/ledger.dart' as ledger;
 import '../domain/models.dart';
+import '../domain/period.dart';
+import '../services/refresh_service.dart';
 import '../services/bill_parser.dart';
 import 'bill_screen.dart';
 import 'item_editor.dart';
@@ -24,6 +26,11 @@ class InboxScreen extends StatelessWidget {
     final unflagged = ledger.unflaggedPending(repo.items).length;
     return Scaffold(
       appBar: AppBar(title: const Text('Inbox'), actions: [
+        IconButton(
+          onPressed: () => _refresh(context),
+          icon: const Icon(Icons.refresh),
+          tooltip: 'Check for new payments',
+        ),
         if (unflagged > 0)
           TextButton.icon(
             onPressed: () async {
@@ -38,18 +45,46 @@ class InboxScreen extends StatelessWidget {
           ),
       ]),
       floatingActionButton: _AddMenu(),
-      body: groups.isEmpty
-          ? const Center(
-              child: Padding(
-              padding: EdgeInsets.all(32),
-              child: Text('Nothing to check. New UPI payments and scanned bills land here.', textAlign: TextAlign.center),
-            ))
-          : ListView.builder(
-              padding: const EdgeInsets.only(bottom: 96),
-              itemCount: groups.length,
-              itemBuilder: (_, i) => _GroupCard(capture: groups[i].key, items: groups[i].value),
-            ),
+      body: RefreshIndicator(
+        onRefresh: () => _refresh(context),
+        child: groups.isEmpty
+            ? ListView(children: const [
+                Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Text('Nothing to check. New UPI payments and scanned bills land here.\n\n'
+                      'Pull down or tap ↻ to check for new payments.',
+                      textAlign: TextAlign.center),
+                ),
+              ])
+            : ListView.builder(
+                padding: const EdgeInsets.only(bottom: 96),
+                itemCount: groups.length,
+                itemBuilder: (_, i) {
+                  final at = groups[i].key.capturedAt;
+                  final newDay = i == 0 || !_sameDay(groups[i - 1].key.capturedAt, at);
+                  final card = _GroupCard(capture: groups[i].key, items: groups[i].value);
+                  if (!newDay) return card;
+                  return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: Text(dayLabel(at, DateTime.now()),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(color: Theme.of(context).colorScheme.primary)),
+                    ),
+                    card,
+                  ]);
+                },
+              ),
+      ),
     );
+  }
+
+  static bool _sameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+
+  static Future<void> _refresh(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final r = await context.read<RefreshService>().refresh();
+    messenger.showSnackBar(SnackBar(content: Text(r.message)));
   }
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/notification_bridge.dart';
+import '../services/refresh_service.dart';
 import 'theme.dart';
 
 /// Shows which apps posted notifications recently and whether Spend Inbox reads them.
@@ -22,6 +23,14 @@ class _AlertCheckScreenState extends State<AlertCheckScreen> {
     _load();
   }
 
+  /// Refresh button: check for new payments (alerts and bank SMS), then reload this list.
+  Future<void> _refresh() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final r = await context.read<RefreshService>().refresh();
+    await _load();
+    messenger.showSnackBar(SnackBar(content: Text(r.message)));
+  }
+
   Future<void> _load() async {
     final b = context.read<NotificationBridge>();
     final access = await b.hasAccess().catchError((_) => false);
@@ -38,7 +47,7 @@ class _AlertCheckScreenState extends State<AlertCheckScreen> {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Check payment alerts'), actions: [
-        IconButton(onPressed: _load, icon: const Icon(Icons.refresh), tooltip: 'Refresh'),
+        IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh), tooltip: 'Check for new payments'),
       ]),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Card(

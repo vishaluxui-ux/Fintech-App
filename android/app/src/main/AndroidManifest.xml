@@ -3,6 +3,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Opt-in bank SMS reading (Settings > Bank SMS). Needs the Play "SMS-based money
+         management" permission declaration before any Play upload. See docs/play-store.md. -->
+    <uses-permission android:name="android.permission.READ_SMS"/>
     <application
         android:label="Spend Inbox"
         android:name="${applicationName}"
@@ -42,7 +45,7 @@
                 <data android:scheme="com.spendinbox.expense_tracker" android:host="login-callback"/>
             </intent-filter>
         </activity>
-        <!-- Reads UPI/bank payment alerts only. No SMS, no accessibility service. -->
+        <!-- Reads UPI/bank payment alerts only. No accessibility service. -->
         <service
             android:name=".UpiNotificationListener"
             android:label="Spend Inbox payment alerts"

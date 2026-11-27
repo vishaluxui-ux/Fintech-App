@@ -1,6 +1,8 @@
 package com.spendinbox.expense_tracker
 
+import android.Manifest
 import android.content.ComponentName
+import android.content.pm.PackageManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -15,6 +17,10 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     // A screenshot shared from a UPI app (or any app), copied into the cache.
     private var sharedImagePath: String? = null
+
+    // Waiting for the user's answer to the SMS permission prompt.
+    private var smsPermissionResult: MethodChannel.Result? = null
+    private val smsRequestCode = 4201
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,6 +65,26 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        MethodChannel(engine.dartExecutor.binaryMessenger, "spendinbox/sms").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "granted" -> result.success(smsGranted())
+                "request" -> {
+                    if (smsGranted()) { result.success(true); return@setMethodCallHandler }
+                    smsPermissionResult?.success(false)
+                    smsPermissionResult = result
+                    requestPermissions(arrayOf(Manifest.permission.READ_SMS), smsRequestCode)
+                }
+                "read" -> {
+                    val since = (call.argument<Number>("since") ?: 0).toLong()
+                    if (!smsGranted()) result.success(emptyList<Map<String, Any>>())
+                    else Thread {
+                        val rows = try { SmsReader.bankSmsSince(applicationContext, since) } catch (_: Exception) { emptyList() }
+                        runOnUiThread { result.success(rows) }
+                    }.start()
+                }
+                else -> result.notImplemented()
+            }
+        }
         EventChannel(engine.dartExecutor.binaryMessenger, "spendinbox/notifications/events").setStreamHandler(
             object : EventChannel.StreamHandler {
                 override fun onListen(args: Any?, sink: EventChannel.EventSink) {
@@ -67,6 +93,15 @@ class MainActivity : FlutterActivity() {
                 }
                 override fun onCancel(args: Any?) { UpiNotificationListener.onNew = null }
             })
+    }
+
+    private fun smsGranted() = checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != smsRequestCode) return
+        smsPermissionResult?.success(grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED)
+        smsPermissionResult = null
     }
 
     private fun hasAccess(): Boolean {

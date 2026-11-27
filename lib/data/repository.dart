@@ -53,7 +53,13 @@ class Repository extends ChangeNotifier {
       case UpiPayment p:
         await _addPayment(p);
       case AtmWithdrawal a:
-        await addWithdrawal(a.amount, a.at, sourceApp: a.sourceApp);
+        // Same withdrawal from the bank app alert and the bank SMS: keep one.
+        final sms = ledger.isSmsSource(a.sourceApp);
+        final twin = withdrawals.any((w) =>
+            ledger.isSmsSource(w.sourceApp) != sms &&
+            (w.amount - a.amount).abs() < 0.005 &&
+            w.at.difference(a.at).abs() <= ledger.duplicateWindow);
+        if (!twin) await addWithdrawal(a.amount, a.at, sourceApp: a.sourceApp);
       case Ignored():
         return;
     }
@@ -62,6 +68,12 @@ class Repository extends ChangeNotifier {
   LocalDb get db => _db;
 
   Future<void> _addPayment(UpiPayment p) async {
+    // Already captured from the other source (app alert vs bank SMS): count it once.
+    if (ledger.findCrossSourceTwin(
+            amount: p.amount, at: p.at, fromSms: ledger.isSmsSource(p.sourceApp), captures: captures, existing: items) !=
+        null) {
+      return;
+    }
     final cap = Capture(id: newId(), source: CaptureSource.upiNotification, sourceApp: p.sourceApp, capturedAt: p.at);
     var status = ItemStatus.pending;
     var flag = ledger.flagFor(payee: p.payee, knownPayees: _knownPayees);
