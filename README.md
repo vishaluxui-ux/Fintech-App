@@ -1,4 +1,4 @@
-# Spend Inbox: closed beta
+# SpendSense: closed beta
 
 Android expense tracker: UPI alerts, bill photos and voice notes become pending items, you approve them in one inbox, and approved spend shows by category. This build covers the **Beta column** of the build spec only.
 

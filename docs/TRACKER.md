@@ -1,4 +1,4 @@
-# Spend Inbox — Project Tracker
+# SpendSense — Project Tracker
 
 Android expense tracker (Flutter + Supabase + Claude Haiku).
 Last updated: 27 Nov 2026
@@ -13,7 +13,7 @@ Last updated: 27 Nov 2026
 | F-11 | ✅ Existing | Payment capture | Claude reads payment alerts the built-in rules can't; queued offline; logged in Supabase `alert_log` | In beta | 22 Nov |
 | F-18 | ✅ Existing | Payment capture | "Check payment alerts" diagnostics screen | In beta | 22 Nov |
 | F-03 | ✅ Existing | Bill scan | Bill scan (camera/gallery) read by Claude Haiku into item lines; payment screenshots read as one spend | In beta | 22 Nov |
-| F-04 | ✅ Existing | Bill scan | Share a screenshot/bill from any app into Spend Inbox | In beta | 22 Nov |
+| F-04 | ✅ Existing | Bill scan | Share a screenshot/bill from any app into SpendSense | In beta | 22 Nov |
 | F-08 | ✅ Existing | Bill scan | Bill total mismatch sheet: Discount / Problem while printing / Line appears twice / Other; printed discounts applied automatically | In beta | 22 Nov |
 | F-05 | ✅ Existing | Inbox | Inbox grouped by bill/payment; edit, approve, approve all per bill, reject, delete, add a missed line | In beta | 22 Nov |
 | F-06 | ✅ Existing | Inbox | One-tap "Approve N" for all unflagged items | In beta | 22 Nov |
@@ -52,7 +52,7 @@ Last updated: 27 Nov 2026
 | I-02 | 🔧 Improve | Account & sync | Custom SMTP (Gmail or Resend) — Supabase built-in email sends only a few per hour | To do — before 10 Dec | 22 Nov |
 | I-03 | 🔧 Improve | Play release | Permanent release signing key (needed for Play) | To do | 22 Nov |
 | I-04 | 🔧 Improve | AI cost | Spend limit on Anthropic console (e.g. US$10/month) | To do | 22 Nov |
-| I-05 | 🔧 Improve | Branding | App icon and name (currently Flutter default icon) | To do | 22 Nov |
+| I-05 | 🔧 Improve | Branding | App renamed to SpendSense (27 Nov). Icon still the Flutter default | Name done; icon to do | 27 Nov |
 | Q-01 | ❓ Open | Payment capture | How to capture payments when UPI apps don't notify? A) bank app alerts, B) share screenshot, C) SMS opt-in. Suggested: beta with A+B, measure, apply for C in v1. Need: user's bank + diagnostics screenshot | Due 23 Nov | 22 Nov |
 | Q-02 | ❓ Open | Dashboard | Good/bad spending definition per category (blocks N-08) | Open | 22 Nov |
 | Q-03 | ❓ Open | Play release | Play Console registration (US$25) and identity verification | Not done — needed before 10 Dec | 22 Nov |

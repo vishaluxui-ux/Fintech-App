@@ -5,7 +5,7 @@ import '../services/notification_bridge.dart';
 import '../services/refresh_service.dart';
 import 'theme.dart';
 
-/// Shows which apps posted notifications recently and whether Spend Inbox reads them.
+/// Shows which apps posted notifications recently and whether SpendSense reads them.
 /// Nothing here is stored or sent; it is held in memory by the listener.
 class AlertCheckScreen extends StatefulWidget {
   const AlertCheckScreen({super.key});
@@ -78,7 +78,7 @@ class _AlertCheckScreenState extends State<AlertCheckScreen> {
             title: Text('${n['label']}'),
             subtitle: Text([
               when(DateTime.fromMillisecondsSinceEpoch(n['postedAt'] as int)),
-              n['supported'] == true ? 'read by Spend Inbox' : 'ignored (not a supported payment app)',
+              n['supported'] == true ? 'read by SpendSense' : 'ignored (not a supported payment app)',
               if ((n['title'] as String?)?.isNotEmpty == true) '"${n['title']}"',
             ].join(' · ')),
           ),

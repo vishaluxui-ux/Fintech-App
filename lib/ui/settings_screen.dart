@@ -51,10 +51,10 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
       builder: (c) => AlertDialog(
         title: const Text('Read UPI payment alerts'),
         content: const Text(
-            'Spend Inbox reads notifications only from UPI and banking apps (Google Pay, PhonePe, Paytm, BHIM and your bank) '
+            'SpendSense reads notifications only from UPI and banking apps (Google Pay, PhonePe, Paytm, BHIM and your bank) '
             'to pick up the amount, payee and time of a payment or ATM withdrawal.\n\n'
             'Notifications from every other app are ignored and never stored. We do not read SMS.\n\n'
-            'On the next screen, turn on Spend Inbox.'),
+            'On the next screen, turn on SpendSense.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Not now')),
           FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Continue')),

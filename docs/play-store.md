@@ -2,7 +2,7 @@
 
 ## Listing
 
-**App name:** Spend Inbox: UPI Expense Tracker
+**App name:** SpendSense: UPI Expense Tracker
 
 **Short description (80 chars max):**
 Track UPI, bills and cash without typing. No SMS access needed.
@@ -11,9 +11,9 @@ Track UPI, bills and cash without typing. No SMS access needed.
 
 Know where your money goes, without typing every expense.
 
-Spend Inbox picks up your UPI payments from Google Pay, PhonePe, Paytm, BHIM and your bank app's alerts. Scan a bill and every item is listed for you. Paid cash? Just say it: "Chai 20 and auto 80". Check each one once in your inbox, and see your spending by category.
+SpendSense picks up your UPI payments from Google Pay, PhonePe, Paytm, BHIM and your bank app's alerts. Scan a bill and every item is listed for you. Paid cash? Just say it: "Chai 20 and auto 80". Check each one once in your inbox, and see your spending by category.
 
-**Why Spend Inbox**
+**Why SpendSense**
 • No SMS access. We read only payment alerts from UPI and bank apps, nothing else.
 • Voice notes. Say what you spent, in one sentence, and it's added with the right category.
 • Cash tracking. ATM withdrawals are held as cash; split them into what you actually spent.
@@ -41,12 +41,12 @@ Encrypted in transit: yes. Users can request deletion: yes, in the app (Settings
 ## Notification access declaration
 
 **Why the app needs notification access:**
-Spend Inbox is an expense tracker. It reads notifications only from a fixed list of UPI and banking apps (Google Pay, PhonePe, Paytm, BHIM, Amazon Pay, CRED and major bank apps) to log the amount, payee and time of payments the user makes and ATM withdrawals. This is the app's core feature: automatic expense logging without SMS access. Notifications from every other app are discarded immediately on the device and never stored or sent anywhere.
+SpendSense is an expense tracker. It reads notifications only from a fixed list of UPI and banking apps (Google Pay, PhonePe, Paytm, BHIM, Amazon Pay, CRED and major bank apps) to log the amount, payee and time of payments the user makes and ATM withdrawals. This is the app's core feature: automatic expense logging without SMS access. Notifications from every other app are discarded immediately on the device and never stored or sent anywhere.
 
 **How the user is informed:** before the system setting opens, an in-app screen explains exactly what is read and that other notifications are ignored. The app works fully without this permission (bill scanning, shared screenshots, manual entry).
 
 **Video to record for the declaration (30–60 s, screen recording on a phone):**
 1. Open the app → Settings → "UPI payment alerts".
-2. Show the explanation screen, tap Continue, enable Spend Inbox in the system list.
+2. Show the explanation screen, tap Continue, enable SpendSense in the system list.
 3. Make a ₹1 UPI payment; show it appearing in the inbox with amount, payee and time.
 4. Show the app still working with access off (scan a bill).

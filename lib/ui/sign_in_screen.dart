@@ -73,7 +73,7 @@ class _SignInScreenState extends State<SignInScreen> {
             const SizedBox(height: 48),
             Align(alignment: Alignment.centerLeft, child: Icon(Icons.inbox_outlined, size: 48, color: cs.primary)),
             const SizedBox(height: 16),
-            Text('Spend Inbox', style: t.headlineMedium),
+            Text('SpendSense', style: t.headlineMedium),
             const SizedBox(height: 8),
             Text('Log spending from UPI alerts and bill photos. Check each item once, then see where your money goes.',
                 style: t.bodyLarge),

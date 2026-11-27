@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <application
-        android:label="Spend Inbox"
+        android:label="SpendSense"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -45,7 +45,7 @@
         <!-- Reads UPI/bank payment alerts only. No SMS, no accessibility service. -->
         <service
             android:name=".UpiNotificationListener"
-            android:label="Spend Inbox payment alerts"
+            android:label="SpendSense payment alerts"
             android:exported="false"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
